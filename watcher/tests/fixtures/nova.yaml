@@ -1,0 +1,37 @@
+# Actions are determined by evaluating the request method, for example a PUT request translates to an 'update' action, POST to an 'create' action.
+# In combination with the target_type_uri this represents sufficient information to enable basic rate limit and audit.
+# However, more granularity might be required.
+# This can be achieved by defining actions using the below configuration.
+
+# Per default a GET ../servers/detail request would be action=read, target_type_uri=compute/servers/detail
+# The below configuration for the same request would produce: action=read/list/detail, target_type_uri=compute/servers/detail
+custom_actions:
+  os-snapshots:
+    - method: GET
+      action: read/list
+
+    - detail: read/list
+
+  os-volumes:
+    - method: GET
+      action: read/list
+
+    - detail: read/list
+
+  os-volume-types:
+    - method: GET
+      action: read/list
+
+  servers:
+    - detail: read/list
+    # The request POST ../servers/<server_id>/action with body { "addFloatingIp": ... } would produce: action=create, target_type_uri=compute/servers/addFloatingIp
+    # The below configuration modifies the action to: action=update/add/floatingip
+    - action:
+      - addFloatingIp: update/addFloatingIp
+      - removeFloatingIp: update/removeFloatingIp
+
+  flavors:
+    - detail: read/list
+    - action:
+      - addTenantAccess: add/project-access
+      - removeTenantAccess: remove/project-access

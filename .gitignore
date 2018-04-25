@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -103,3 +104,4 @@ ENV/
 
 # debug tools
 *debugserver.py
+tools/Dockerfile
