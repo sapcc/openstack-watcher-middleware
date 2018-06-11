@@ -43,6 +43,7 @@ For example: `WATCHER.ACTION`, `WATCHER.INITIATOR_PROJECT_ID`, `WATCHER.TARGET_P
 - `account_id`:   the name/id of the swift account. `Unknown` if not relevant.
 - `container_id`: the name/id of the swift container. `Unknown` if not relevant.
 
+
 Determining the target of an operation can be hard. The watcher offers 3 approaches to that:   
 1. Extract target project id from token.
 Assumptions: Initiator is authenticated. Initiator and target are in the same project.
@@ -126,8 +127,10 @@ which enables the watcher to determine the target project id for a service based
 
 **Note**:
 Setting`delay_auth_decision = true`, configures the auth_token middleware to delegate the authorization decision to downstream WSGI components.
-This enables unauthenticated requests, hence the initators project, domain and user uid cannot be determined via the keystone token and are `Unknown`.
+This enables unauthenticated requests, hence the initators project, domain and user uid *cannot* be determined via the keystone token and are `Unknown`.
 In which case the initiator can only be characterized by its client address.
+Furthermore, the *target.project_id* cannot be extracted from the token nor the service catalog.
+If the request path does not include the target.project_id, it will be `Unknown`. 
 
 ### Pipeline 
 
@@ -161,7 +164,7 @@ keystone_service_type = <service_type>
 
 # used to overwrite default 'service/<service_name>' 
 # example: object-store
-service_prefix = <service_prefix>
+service_prefix = <prefix>
 
 # metrics are emitted via StatsD
 statsd_host = 127.0.0.1
