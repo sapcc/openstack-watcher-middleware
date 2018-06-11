@@ -186,10 +186,11 @@ class OpenStackWatcherMiddleware(object):
         project_uid = taxonomy.UNKNOWN
         try:
             if common.is_swift_request(path):
-                project_uid = common.get_swift_project_id(path)
+                project_uid = common.get_swift_project_id_from_path(path)
             else:
                 project_uid = common.get_project_id_from_os_path()
         finally:
+            self.logger.debug("request path '{0}' contains target.project_id '{1}'".format(path, project_uid))
             return project_uid
 
     def get_target_project_id_from_keystone_token_info(self, token_info):
@@ -311,5 +312,4 @@ def load_config(config_path):
     except Exception as e:
         raise errors.ConfigError("Failed to load configuration from file %s: %s" % (config_path, str(e)))
     finally:
-        f.close()
         return yaml_conf
