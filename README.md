@@ -40,11 +40,17 @@ For example: `WATCHER.ACTION`, `WATCHER.INITIATOR_PROJECT_ID`, `WATCHER.TARGET_P
 **Target** attributes:
 - `project_id`:   the targets project uid. `Unknown` if it could not be determined. 
 - `type_uri`:     characterizes the URI of the target resource
-- `account_id`:   the name/id of the swift account. `Unknown` if not relevant.
-- `container_id`: the name/id of the swift container. `Unknown` if not relevant.
 
 
-Determining the target of an operation can be hard. The watcher offers 3 approaches to that:   
+**Additional service specific attributes**:
+
+- Swift (object-store):
+    - `target.container_id`: the name/id of the swift container. `None` if not relevant. `Unknown` if it could not be determined.
+    
+
+#### Determine target project 
+
+Determining the target of an operation can be hard. The watcher offers 3 mutually exclusive approaches to that:   
 1. Extract target project id from token.
 Assumptions: Initiator is authenticated. Initiator and target are in the same project.
 In which case the initiator.project_id as seen in the keystone token will be equal to the target.project_id. 

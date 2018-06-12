@@ -91,11 +91,6 @@ class OpenStackWatcherMiddleware(object):
         elif self.is_project_id_from_service_catalog:
             target_project_id = self.get_target_project_id_from_keystone_token_info(environ.get('keystone.token_info'))
 
-        # determine target accound, container id based on request path
-        target_account_id = target_container_id = taxonomy.UNKNOWN
-        if common.is_swift_request(req.path):
-            target_account_id, target_container_id = self.get_target_account_container_id_from_request(req)
-
         target_type_uri = self.determine_target_type_uri(req)
 
         action = taxonomy.UNKNOWN
@@ -121,21 +116,9 @@ class OpenStackWatcherMiddleware(object):
 
         # target
         environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
-        environ['WATCHER.TARGET_ACCOUNT_ID'] = target_account_id
-        environ['WATCHER.TARGET_CONTAINER_ID'] = target_container_id
         environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
         environ['WATCHER.ACTION'] = action
         environ['WATCHER.SERVICE_NAME'] = self.service_name
-
-        self.logger.debug(
-            'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
-            'target_project_id: {3}, target_account_id: {4}, target_container_id: {5}, '
-            'action: {6}, target_type_uri: {7}'
-            .format(initiator_project_id, initiator_domain_id, initiator_user_id,
-                    target_project_id, target_account_id, target_container_id,
-                    action, target_type_uri
-                    )
-        )
 
         labels = [
             "service:{0}".format(self.service_name),
@@ -145,6 +128,23 @@ class OpenStackWatcherMiddleware(object):
             "target_project_id:{0}".format(target_project_id),
             "target_type_uri:{0}".format(target_type_uri),
         ]
+
+        # if swift request: determine target.container_id based on request path
+        if common.is_swift_request(req.path):
+            _, target_container_id = self.get_target_account_container_id_from_request(req)
+            environ['WATCHER.TARGET_CONTAINER_ID'] = target_container_id
+            labels.append(
+                "target_container_id:{0}".format(target_container_id)
+            )
+
+        self.logger.debug(
+            'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
+            'target_project_id: {3}, action: {6}, target_type_uri: {7}'
+            .format(initiator_project_id, initiator_domain_id, initiator_user_id,
+                    target_project_id, action, target_type_uri
+                    )
+        )
+
         try:
             self.metric_client.open_buffer()
 
