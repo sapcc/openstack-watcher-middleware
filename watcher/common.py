@@ -142,7 +142,7 @@ def _find_custom_action_in_list(method, config_list):
     """
     for config in config_list:
         method_string = config.get('method', '')
-        action = config.get('action', None)
+        action = config.get('action_type', None)
         if method_string.lower() == method.lower() and action:
             return action
     return taxonomy.UNKNOWN

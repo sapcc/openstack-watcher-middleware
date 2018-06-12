@@ -123,31 +123,31 @@ class TestCommon(unittest.TestCase):
             'account': [
                 {
                     'method': 'GET',
-                    'action': 'read/list'
+                    'action_type': 'read/list'
                 },
                 {
                     'method': 'POST',
-                    'action': 'update'
+                    'action_type': 'update'
                 },
                 {
                     'container': [
                         {
                             'method': 'GET',
-                            'action': 'read/list'
+                            'action_type': 'read/list'
                         },
                         {
                             'method': 'POST',
-                            'action': 'update'
+                            'action_type': 'update'
                         },
                         {
                           'method': 'HEAD',
-                          'action': 'read',
+                          'action_type': 'read',
                         },
                         {
                             'object': [
                                 {
                                     'method': 'POST',
-                                    'action': 'update'
+                                    'action_type': 'update'
                                 }
                             ]
                         }
