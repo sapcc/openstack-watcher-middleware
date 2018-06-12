@@ -6,16 +6,201 @@
 # Per default a GET ../servers/detail request would be action=read, target_type_uri=compute/servers/detail
 # The below configuration for the same request would produce: action=read/list/detail, target_type_uri=compute/servers/detail
 custom_actions:
+  os-snapshots:
+    - method: GET
+      action_type: read/list
+    - detail: read/list
+
+  os-volumes:
+    - method: GET
+      action_type: read/list
+    - detail: read/list
+
+  os-volume-types:
+    - method: GET
+      action_type: read/list
+
+  extensions:
+    - method: GET
+      action_type: read/list
+
   servers:
-    detail: read/list
-    # The request POST ../servers/<server_id>/action with body { "addFloatingIp": ... } would produce: action=create, target_type_uri=compute/servers/addFloatingIp
-    # The below configuration modifies the action to: action=update/add/floatingip
-    action:
-      addFloatingIp: update/addFloatingIp
-      removeFloatingIp: update/removeFloatingIp
+    - method: GET
+      action_type: read/list
+    - detail: read/list
+
+    - server:
+      - metadata:
+        - method: GET
+          action_type: read/list
+
+      - ips:
+        - method: GET
+          action_type: read/list
+
+        - label:
+          - method: GET
+            action_type: read/list
+
+      - action:
+        - changePassword: update/changePassword
+        - reboot: update/reboot
+        - rebuild: update/rebuild
+        - resize: update/resize
+        - restore: update/Restore
+        - confirmResize: update/confirmResize
+        - revertResize: update/revertResize
+        - createImage: update/createImage
+        - pause: update/pause
+        - unpause: update/unpause
+        - suspend: update/suspend
+        - resume: update/resume
+        - migrate: update/migrate
+        - resetNetwork: update/resetNetwork
+        - injectNetwork: update/injectNetwork
+        - lock: update/lock
+        - unlock: update/unlock
+        - createBackup: update/createBackup
+        - os-migrateLive: update/os-migrateLive
+        - os-resetState: update/os-resetState
+        - evacuate: update/evacuate
+        - addSecurityGroup: update/addSecurityGroup
+        - removeSecurityGroup: update/removeSecurityGroup
+        - addFloatingIp: update/addFloatingIp
+        - removeFloatingIp: update/removeFloatingIp
+        - os-getConsoleOutput: update/os-getConsoleOutput
+        - os-getVNCConsole: update/os-getVNCConsole
+        - forceDelete: update/forceDelete
+
+      - os-instance-actions:
+        - method: GET
+          action_type: read/list
 
   flavors:
-    detail: read/list
-    action:
-      addTenantAccess: add/project-access
-      removeTenantAccess: remove/project-access
+    - method: GET
+      action_type: read/list
+    - detail: read/list
+
+    - flavor:
+      - os-flavor-access:
+        - method: GET
+          action_type: read/list
+
+      - os-extra_specs:
+        - method: GET
+          action_type: read/list
+
+      - action:
+        - addTenantAccess: update/addTenantAccess
+        - removeTenantAccess: update/removeTenantAccess
+
+  images:
+    - method: GET
+      action_type: read/list
+    - detail: read/list
+
+    - image:
+      - metadata:
+        - method: GET
+          action_type: read/list
+
+  limits:
+    - method: GET
+      action_type: read/list
+
+  os-agents:
+    - method: GET
+      action_type: read/list
+
+  os-aggregates:
+    - method: GET
+      action_type: read/list
+    - os-aggregate:
+      - action:
+        - add_host: update/add_host
+        - remove_host: update/remove_host
+
+  os-certificates:
+    - method: GET
+      action_type: read/list
+
+  os-cloudpipe:
+    - method: GET
+      action_type: read/list
+    - configure-project: update
+
+  os-coverage:
+    - action:
+      - report: update/report
+      - start: update/start
+      - stopt: update/stop
+
+  os-fixed-ips:
+    - ip:
+      - action:
+        - reserve: update/reserve
+
+  os-floating-ip-dns:
+    - method: GET
+      action_type: read/list
+    - domain:
+      - entries:
+        - entry:
+          - method: GET
+            action_type: read/list
+
+  os-floating-ip-pools:
+    - method: GET
+      action_type: read/list
+
+  os-floating-ips:
+    - method: GET
+      action_type: read/list
+
+  os-floating-ips-bulk:
+    - method: GET
+      action_type: read/list
+
+  os-hosts:
+    - method: GET
+      action_type: read/list
+
+    - host:
+      - shutdown: stop/shutdown
+      - reboot: start/reboot
+
+  os-hypervisors:
+    - method: GET
+      action_type: read/list
+
+    - statistics:
+      - method: GET
+        action_type: read/list
+
+    - hypervisors:
+      - detail: read/list
+      - servers:
+        - method: GET
+          action_type: read/list
+
+  os-keypairs:
+    - method: GET
+      action_type: read/list
+
+  os-networks:
+    - method: GET
+      action_type: read/list
+
+    - network:
+      - action:
+        - associate_host: update/associate_host
+        - disassociate_host: update/disassociate_host
+        - disassociate: update/disassociate
+        - disassociate_project: udpate/disassociate_project
+
+  os-quota-sets:
+    - method: GET
+      action_type: read/list
+
+
+
