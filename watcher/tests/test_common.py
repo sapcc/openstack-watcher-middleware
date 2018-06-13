@@ -70,54 +70,6 @@ class TestCommon(unittest.TestCase):
             'service/compute/servers/action/addFloatingIp'
         )
 
-    def test_custom_action_nova(self):
-        config = {
-           'servers': [
-                {'detail': 'read/list'},
-                {'action':[
-                    {'addFloatingIp': 'update/addFloatingIp'},
-                    {'removeFloatingIp': 'update/removeFloatingIp'},
-                ]}
-            ],
-           'flavors': [
-                {'detail': 'read/list'},
-                {'action': [
-                    {'addTenantAccess': 'add/project-access'},
-                    {'removeTenantAccess': 'remove/project-access'}
-                ]}
-            ]
-        }
-
-        stimuli = [
-            {
-                'target_type_uri': 'compute/servers/action/addFloatingIp',
-                'expected': 'update/addFloatingIp',
-                'help': "the custom action of 'POST compute/servers/action/addFloatingIp' should be 'update/addFloatingIp'"
-            },
-            {
-                'target_type_uri': 'compute/servers/detail',
-                'expected': 'read/list',
-                'help': "the custom action of 'GET compute/servers/detail' should be 'read/list'"
-            },
-            {
-                'target_type_uri': 'compute/flavors/action/addTenantAccess',
-                'expected': 'add/project-access',
-                'help': "the custom action of 'POST compute/flavors/action/addTenantAccess' should be 'add/project-access'"
-            },
-            {
-                'target_type_uri': 'compute/flavors/action/removeTenantAccess',
-                'expected': 'remove/project-access',
-                'help': "the custom action of 'POST compute/flavors/action/removeTenantAccess' should be 'remove/project-access'"
-            }
-        ]
-
-        for s in stimuli:
-            self.assertEqual(
-                common.determine_custom_action(config, s.get('target_type_uri')),
-                s.get('expected'),
-                s.get('help')
-            )
-
     def test_custom_action_swift(self):
         config = {
             'account': [

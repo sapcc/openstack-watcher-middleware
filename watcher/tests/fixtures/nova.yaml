@@ -1,10 +1,3 @@
-# Actions are determined by evaluating the request method, for example a PUT request translates to an 'update' action, POST to an 'create' action.
-# In combination with the target_type_uri this represents sufficient information to enable basic rate limit and audit.
-# However, more granularity might be required.
-# This can be achieved by defining actions using the below configuration.
-
-# Per default a GET ../servers/detail request would be action=read, target_type_uri=compute/servers/detail
-# The below configuration for the same request would produce: action=read/list/detail, target_type_uri=compute/servers/detail
 custom_actions:
   os-snapshots:
     - method: GET

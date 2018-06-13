@@ -71,22 +71,26 @@ See section [keystone auth_token middleware](#keystone-auth_token-middleware).
 
 Actions characterize the operation performed by the initiator of a request against a target. 
 A comprehensive definition of these actions is provided by the CADF specification mentioned above.
-The watcher is capable of classifying request actions based on the HTTP method:
+The watcher is capable of classifying request actions based on the HTTP method and path as follows:
 ```
-| HTTP method   | action        |
-|---------------|---------------|
-| GET           | read          |
-| HEAD          | read          |
-| PUT           | update        |
-| PATCH         | update        |
-| POST          | create        |
-| DELETE        | delete        |
-| COPY          | create/copy   |                  
+|---------------|-------------------|-------------------|
+| HTTP method   | path              | action            |
+|---------------|-------------------|-------------------|
+| GET           |                   | read              |
+| GET           | ../detail         | read/list         | 
+| HEAD          |                   | read              |
+| PUT           |                   | update            |
+| PATCH         |                   | update            |
+| POST          |                   | create            |
+| POST          | ../auth/tokens    | authenticate      |
+| DELETE        |                   | delete            |
+| COPY          |                   | create/copy       |
+|---------------|-------------------|-------------------|        
 ```
 
-Using this mapping the watcher is capable of classifying request actionscorrectly in most cases.  
-However, some require a mapping file as outlined hereinafter.
-The mapping could also be used to define actions not mentioned by the specification or to provide alternative actions.
+Using this mapping the watcher is capable of classifying request actions correctly in most cases.  
+However, some cases require a different mapping to alternative actions.
+The default classification can be overwritten using a custom_actions mapping
   
 An example for swift (object-store) looks like this:
 ```yaml
@@ -109,11 +113,14 @@ custom_actions:
 ```
 This configuration results in the following mapping:
 ```
+|---------------------------------------|-------------------|
 | request                               | action            |
 |---------------------------------------|-------------------|
 | GET  ../v1/account                    | read/list         |
 | POST ../v1/account/container          | update            |
 | POST ../v1/account/container/object   | update            |
+| ...                                   | ...               |
+|---------------------------------------|-------------------|
 ````
 
 

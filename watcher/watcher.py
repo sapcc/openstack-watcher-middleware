@@ -297,10 +297,14 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: the target type uri or taxonomy.UNKNOWN
         """
-        if common.is_swift_request(req.path):
+        if 'object-store' in self.service_name:
             swift_strategy = ttu.SwiftTargetTypeURIStrategy(prefix=self.prefix)
             return swift_strategy.determine_target_type_uri(req)
-        generic_strategy = ttu.GenericTargetTypeURIStrategy(prefix=self.prefix)
+        elif 'compute' in self.service_name:
+            nova_strategy = ttu.NovaTargetTypeURIStrategy(prefix=self.prefix)
+            return nova_strategy.determine_target_type_uri(req)
+        else:
+            generic_strategy = ttu.GenericTargetTypeURIStrategy(prefix=self.prefix)
         return generic_strategy.determine_target_type_uri(req)
 
 

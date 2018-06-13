@@ -63,9 +63,21 @@ def determine_action_from_request(req):
 
 
 def determine_action(method, path=''):
+    """
+    determines action based on request method and path
+
+    :param method: the request method
+    :param path: the request path
+    :return: the action or unknown
+    """
+    # remove trailing '/'
+    path = path.rstrip('/')
+    # must be an authentication request
     if method == 'POST' and 'auth/tokens' in path:
-        # must be an authentication request
         return taxonomy.ACTION_AUTHENTICATE
+    # GET ../detail requests are read/list
+    if method == 'GET' and path.endswith('/detail'):
+        return taxonomy.ACTION_LIST
     # try to map everything else
     for m_string, tax_action in six.iteritems(method_action_map):
         if m_string.lower() == method.lower():
@@ -98,9 +110,9 @@ def determine_custom_action(config, target_type_uri, method='GET', prefix=None):
             conf = part_config.get(part, None)
             if conf:
                 part_config = conf
-        # if this is the last part of the target_type_uri, look for the custom_action config, which
-        # might be directly accessible (string) or if multiple custom actions are defined,
-        # be part of a list [ {method: <http_method>, action: <custom_action>}, {..} ]
+        # if this is the last part of the target_type_uri, look for the action_type, which
+        # might be directly accessible (string) or part of a list, which looks like:
+        # [ {method: <http_method>, action_type: <action_type}, {..} ]
         if index == len(uri_parts) - 1:
             if isinstance(part_config, str):
                 return part_config
@@ -114,21 +126,6 @@ def determine_custom_action(config, target_type_uri, method='GET', prefix=None):
                 if conf:
                     return determine_custom_action(conf, target_type_uri, method)
     return custom_action
-
-
-def add_prefix_target_type_uri(target_type_uri, prefix):
-    if not prefix:
-        return target_type_uri
-    prefix = prefix.lstrip('/')
-    if not prefix.endswith('/') and not target_type_uri.startswith('/'):
-        prefix += '/'
-    return prefix + target_type_uri
-
-
-def split_prefix_target_type_uri(target_type_uri, prefix):
-    if prefix and target_type_uri.startswith(prefix):
-        target_type_uri = target_type_uri[len(prefix):]
-    return target_type_uri.lstrip('/')
 
 
 def _find_custom_action_in_list(method, config_list):
@@ -146,6 +143,21 @@ def _find_custom_action_in_list(method, config_list):
         if method_string.lower() == method.lower() and action:
             return action
     return taxonomy.UNKNOWN
+
+
+def add_prefix_target_type_uri(target_type_uri, prefix):
+    if not prefix:
+        return target_type_uri
+    prefix = prefix.lstrip('/')
+    if not prefix.endswith('/') and not target_type_uri.startswith('/'):
+        prefix += '/'
+    return prefix + target_type_uri
+
+
+def split_prefix_target_type_uri(target_type_uri, prefix):
+    if prefix and target_type_uri.startswith(prefix):
+        target_type_uri = target_type_uri[len(prefix):]
+    return target_type_uri.lstrip('/')
 
 
 def is_action_request(req):

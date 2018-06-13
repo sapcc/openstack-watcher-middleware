@@ -24,9 +24,10 @@ class TargetTypeURIStrategy(object):
     """
     base class for target type uri strategies
     """
-    def __init__(self, strategy, prefix=None):
+    def __init__(self, strategy, prefix=None, mapping={}):
         self.strategy = strategy
         self.prefix = prefix
+        self.mapping = mapping
 
     def determine_target_type_uri(self, request):
         """
@@ -56,21 +57,42 @@ class TargetTypeURIStrategy(object):
         """
         return common.split_prefix_target_type_uri(target_type_uri, self.prefix)
 
+    def _replace_uid_with_singular_or_custom_mapping(self, previous_part, part):
+        """
+        returns the singular of the previous part by removing the trailing 's'
+        if the singular cannot be derived this way, a mapping is required
+
+        example:
+        (1) ../servers/<uid>/.. => ../servers/server/..
+        (2) mapping{'os-extra_specs': 'key'}
+            ../os-extra_specs/<uid>/.. => ../os-extra_specs/key/..
+
+        :param previous_part: the previous part of the path
+        :param part: the current path part
+        :return: part for the target_type_uri
+        """
+        mapping = self.mapping.get(previous_part, None)
+        if mapping:
+            return mapping
+        if common.is_uid_string(part):
+            return previous_part.rstrip('s')
+        return
+
 
 class GenericTargetTypeURIStrategy(TargetTypeURIStrategy):
     """
-    constructs the resource key from the request path or body
+    constructs the target_type_uri from the request path and body
 
     examples:
     (1) path: .../v2/zones/012345678abcdef/recordsets/012345678abcdef
-        => <prefix>/zones/zone/recordsets
+        => <prefix>/zones/zone/recordsets/recordset
 
     (2) path: .../servers/1234567890abcdef/action
         body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
         => <prefix>/servers/server/addFloatingIp
     """
-    def __init__(self, prefix=None):
-        super(GenericTargetTypeURIStrategy, self).__init__(strategy='generic', prefix=prefix)
+    def __init__(self, prefix=None, strategy='generic', mapping={}):
+        super(GenericTargetTypeURIStrategy, self).__init__(strategy=strategy, prefix=prefix, mapping=mapping)
 
     def determine_target_type_uri(self, req):
         """
@@ -83,13 +105,12 @@ class GenericTargetTypeURIStrategy(TargetTypeURIStrategy):
 
             # no /action request. concat path without version or uids
             for index, part in enumerate(path_parts):
-                is_uid = common.is_uid_string(part)
                 previous_index = index - 1
-                if is_uid and previous_index >= 0:
-                    # replace uid with resource using previous part in singular
-                    # ../servers/<uid>/.. => ../servers/server/..
-                    target_type_uri.append(path_parts[previous_index].rstrip('s'))
-                    continue
+                if previous_index >= 0:
+                    p = self._replace_uid_with_singular_or_custom_mapping(path_parts[previous_index], part)
+                    if p:
+                        target_type_uri.append(p)
+                        continue
                 if common.is_version_string(part):
                     continue
                 if len(part) > 1:
@@ -121,13 +142,13 @@ class GenericTargetTypeURIStrategy(TargetTypeURIStrategy):
 
 class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
     """
-    determines the target_type_uri from a swift request
+    determines the target_type_uri from a swift (object-store) request
 
     path of swift request might look like:  ../AUTH_accountname/containername/objectname
     and the corresponding target_type_uri like: <prefix>/account/container/object
     """
-    def __init__(self, strategy='swift', prefix='service/storage/object'):
-        super(SwiftTargetTypeURIStrategy, self).__init__(strategy=strategy, prefix=prefix)
+    def __init__(self):
+        super(SwiftTargetTypeURIStrategy, self).__init__(strategy='swift', prefix='service/storage/object')
 
     def determine_target_type_uri(self, req):
         """
@@ -148,3 +169,28 @@ class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
                 return taxonomy.UNKNOWN
             uri = '/'.join(target_type_uri).lstrip('/')
             return self.add_prefix_target_type_uri(uri)
+
+
+class NovaTargetTypeURIStrategy(GenericTargetTypeURIStrategy):
+    """
+    determines the target_type_uri of a nova (compute) request
+    """
+    def __init__(self):
+        mapping = {
+            # ../os-floating-ip-dns/<domain_uid>/.. => ../os-floating-ip-dns/domain/..
+            'os-floating-ip-dns': 'domain',
+            # ../os-floating-ip/<uid>/.. => ../os-floating-ip/floating-ip/..
+            'os-floating-ips': 'floating-ip',
+            'os-extra_specs': 'key',
+            'entries': 'entry',
+            'os-hosts': 'host',
+            'os-hypervisors': 'hypervisor',
+            'os-instance-actions': 'instance-action',
+            'os-keypairs': 'keypair',
+            'os-networks': 'network',
+            'os-security-group-rules': 'rules',
+            'os-security-groups': 'security-group',
+            'os-simple-tenant-usage': 'tenant',
+            'os-volume_attachments': 'attachments'
+        }
+        super(NovaTargetTypeURIStrategy, self).__init__(strategy='nova', prefix='service/compute', mapping=mapping)
