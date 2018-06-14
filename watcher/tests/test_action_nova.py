@@ -3,13 +3,24 @@ import unittest
 
 import watcher.common as common
 from watcher.watcher import load_config
-
+from . import fake
+from watcher.watcher import OpenStackWatcherMiddleware
+from watcher import target_type_uri_strategy as ttus
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
 NOVA_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/nova-complex.yaml'
 
 
 class TestNova(unittest.TestCase):
+    is_setup = False
+
+    def setUp(self):
+        if self.is_setup:
+            return
+        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {})
+        self.nova = ttus.NovaTargetTypeURIStrategy()
+        self.is_setup = True
+
     def test_custom_action_simple(self):
         config = {
            'servers': [
@@ -72,78 +83,97 @@ class TestNova(unittest.TestCase):
 
         stimuli = [
             {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'method': 'POST',
-                'os_action': 'addFloatingIp',
+                'request': fake.create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"addFloatingIp": {"foo": "bar"}}
+                ),
                 'expected': 'update/addFloatingIp'
             },
             {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'method': 'POST',
-                'os_action': 'removeSecurityGroup',
+                'request': fake.create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"removeSecurityGroup": {"name": "foobar"}}
+                ),
                 'expected': 'update/removeSecurityGroup'
             },
             {
-                'target_type_uri': 'service/compute/os-snapshots',
+                'request': fake.create_request(path='/v2.1/os-snapshots'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/os-snapshots',
-                'method': 'POST',
-                'expected': 'unknown'
+                'request': fake.create_request(path='/v2.1/os-snapshots', method='POST'),
+                'expected': 'create'
             },
             {
-                'target_type_uri': 'service/compute/servers',
+                'request': fake.create_request(path='/v2.1/servers'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/servers/server/ips',
+                'request': fake.create_request(path='/v2.1/servers/0123456789abcdef0123456789abcdef/ips'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/servers/server/ips/label',
+                'request': fake.create_request(path='/v2.1/servers/0123456789abcdef0123456789abcdef/ips/label'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'os_action': 'os-getConsoleOutput',
-                'expected': 'update/os-getConsoleOutput'
+                'request': fake.create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"os-getConsoleOutput": {"length": 50}}
+                ),
+                'expected': 'update/getConsoleOutput'
             },
             {
-                'target_type_uri': 'service/compute/servers/os-instance-actions',
+                'request': fake.create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"os-getVNCConsole": {"type": "novnc"}}
+                ),
+                'expected': 'update/os-getVNCConsole'
+            },
+            {
+                'request': fake.create_request(path='/v2.1/servers/0123456789abcdef0123456789abcdef/os-instance-actions'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/flavors/flavor/os-extra_specs',
+                'request': fake.create_request(
+                    path='/v2.1/flavors/0123456789abcdef0123456789abcdef/os-extra_specs'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/flavors/flavor/action',
-                'method': 'POST',
-                'os_action': 'addTenantAccess',
+                'request': fake.create_request(
+                    path='/v2.1/flavors/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"addTenantAccess": {"tenant": "fakeTenant"}}
+                ),
                 'expected': 'update/addTenantAccess'
             },
             {
-                'target_type_uri': 'service/compute/images/image/metadata',
+                'request': fake.create_request(
+                    path='/v2.1/images/0123456789abcdef0123456789abcdef/metadata'),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/os-aggregates/os-aggregate/action',
-                'method': 'POST',
-                'os_action': 'add_host',
+                'request': fake.create_request(
+                    path='/v2.1/os-aggregates/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"add_host": {"host": "21549b2f665945baaa7101926a00143c"}},
+                ),
                 'expected': 'update/add_host'
             },
         ]
 
         for s in stimuli:
-            target_type_uri = s.get('target_type_uri')
-            method = s.get('method', 'GET')
-            os_action = s.get('os_action')
+            req = s.get('request')
             expected = s.get('expected')
+            target_type_uri = self.nova.determine_target_type_uri(req)
             self.assertEqual(
-                common.determine_custom_cadf_action( config,target_type_uri, method, os_action,),
+                self.watcher.determine_cadf_action(config, target_type_uri, req),
                 expected,
-                "cadf action for '{0} {1} {2}' should be '{3}'".format(method, target_type_uri, os_action, expected)
+                "cadf action for '{0}' should be '{1}'".format(req, expected)
             )
 
 

@@ -41,6 +41,7 @@ class OpenStackWatcherMiddleware(object):
         self.watcher_config = {}
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
+        self.custom_action_config = self.watcher_config.get('custom_actions', {})
         # prefix for target_type_uri
         self.prefix = self.cadf_service_name or \
             self.wsgi_config.get('service_prefix', 'service/{0}/'.format(self.service_type))
@@ -92,23 +93,11 @@ class OpenStackWatcherMiddleware(object):
         elif self.is_project_id_from_service_catalog:
             target_project_id = self.get_target_project_id_from_keystone_token_info(environ.get('keystone.token_info'))
 
+        # determine target.type_uri for request
         target_type_uri = self.determine_target_type_uri(req)
 
-        cadf_action = taxonomy.UNKNOWN
-        # determine action as per custom action configuration
-        custom_action_config = self.watcher_config.get('custom_actions', {})
-        if custom_action_config:
-            cadf_action = common.determine_custom_cadf_action(
-                config=custom_action_config,
-                target_type_uri=target_type_uri,
-                method=req.method,
-                os_action=common.determine_openstack_action_from_request(req),
-                prefix=self.prefix
-            )
-            self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
-        if not cadf_action or cadf_action == taxonomy.UNKNOWN:
-            # determine action based on HTTP method (and path for authentication req)
-            cadf_action = common.determine_cadf_action_from_request(req)
+        # determine cadf_action for request. consider custom action config.
+        cadf_action = self.determine_cadf_action(self.custom_action_config, target_type_uri, req)
 
         # initiator
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
@@ -306,11 +295,51 @@ class OpenStackWatcherMiddleware(object):
             nova_strategy = ttu.NovaTargetTypeURIStrategy(prefix=self.prefix)
             return nova_strategy.determine_target_type_uri(req)
         elif 'image' == self.service_type:
-            glance_strategy = ttu.TargetTypeURIStrategy(prefix=self.prefix)
+            glance_strategy = ttu.GlanceTargetTypeURIStrategy(prefix=self.prefix)
             return glance_strategy.determine_target_type_uri(req)
+        elif 'cinder' == self.service_type:
+            cinder_strategy = ttu.CinderTargetTypeURIStrategy(prefix=self.prefix)
+            return cinder_strategy.determine_target_type_uri(req)
         else:
             generic_strategy = ttu.TargetTypeURIStrategy(strategy=self.service_type, prefix=self.prefix)
             return generic_strategy.determine_target_type_uri(req)
+
+    def determine_cadf_action(self, custom_action_config, target_type_uri, req):
+        """
+        attempts to determine the cadf action for a request in the following order:
+        (1) return custom action if one is configured
+        (2) return action
+        (3) return action based on request method
+
+        :param custom_action_config: configuration of custom actions
+        :param target_type_uri: the target.type_uri
+        :param req: the request
+        :return: the cadf action or unknown
+        """
+        # determine action as per custom action configuration
+        cadf_action = taxonomy.UNKNOWN
+        try:
+            os_action = common.determine_openstack_action_from_request(req)
+            # search custom action configuration
+            if custom_action_config:
+                cadf_action = common.determine_custom_cadf_action(
+                    config=custom_action_config,
+                    target_type_uri=target_type_uri,
+                    method=req.method,
+                    os_action=os_action,
+                    prefix=self.prefix
+                )
+                self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
+            # if action request and cadf action still unknown, attempt to convert
+            if common.is_action_request(req) and cadf_action == taxonomy.UNKNOWN:
+                cadf_action = common.openstack_action_to_cadf_action(os_action)
+            # determine cadf action based on HTTP method (and path for authentication req)
+            if cadf_action == taxonomy.UNKNOWN:
+                cadf_action = common.determine_cadf_action_from_request(req)
+        except Exception as e:
+            self.logger.warning('unable to determine cadf action: {}'.format(str(e)))
+        finally:
+            return cadf_action
 
 
 def load_config(config_path):

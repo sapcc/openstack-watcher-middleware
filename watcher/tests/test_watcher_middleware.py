@@ -181,6 +181,54 @@ class TestWatcherMiddleware(unittest.TestCase):
             "should be 'unknown' as the service catalog contains no project scoped endpoint url"
         )
 
+    def test_determine_cadf_action(self):
+        config = {
+            'servers': [
+                {'action': [
+                    {'os-getConsoleOutput': 'update/os-getConsoleOutput'}
+                ]}
+            ]
+        }
+
+        stimuli = [
+            {
+                'target_type_uri': 'service/compute/servers/server/action',
+                'request': create_request(
+                    path='v2.0/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"addFloatingIp": {"address": "10.10.10.10", "fixed_address": "192.168.0.3"}},
+                    ),
+                'expected': 'update/addFloatingIp'
+            },
+            {
+                'target_type_uri': 'service/compute/servers/server/action',
+                'request': create_request(
+                    path='v2.0/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"os-getConsoleOutput": {"length": 50}},
+                ),
+                'expected': 'update/os-getConsoleOutput'
+            },
+            {
+                'target_type_uri': 'service/compute/servers/server/action',
+                'request': create_request(
+                    path='v2.0/servers/0123456789abcdef0123456789abcdef',
+                    method='GET',
+                ),
+                'expected': 'read'
+            }
+        ]
+
+        for stim in stimuli:
+            target_type_uri = stim.get('target_type_uri')
+            req = stim.get('request')
+            expected = stim.get('expected')
+            self.assertEqual(
+                self.app.determine_cadf_action(config, target_type_uri, req),
+                expected,
+                "action for {0} should be {1}".format(req, expected)
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

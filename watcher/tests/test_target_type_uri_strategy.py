@@ -1,4 +1,3 @@
-import six
 import unittest
 import json
 
@@ -25,6 +24,7 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
             self.nova = ttus.NovaTargetTypeURIStrategy()
             self.swift = ttus.SwiftTargetTypeURIStrategy()
             self.glance = ttus.GlanceTargetTypeURIStrategy()
+            self.cinder = ttus.CinderTargetTypeURIStrategy()
             self.isSetUp = True
 
     def test_nova_action_target_type_uri(self):
@@ -187,6 +187,114 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
             expected = stim.get('expected')
             self.assertEqual(
                 self.glance.determine_target_type_uri(req),
+                expected,
+                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+            )
+
+    def test_cinder_target_type_uri(self):
+        stimuli = [
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/types/type'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/extra_specs/somekey'),
+                'expected': 'service/storage/block/types/type/extra_specs/key'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/encryption/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/types/type/encryption/key'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/os-volume-type-access'),
+                'expected': 'service/storage/block/types/type/os-volume-type-access'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/volumes/b206a1900310484f8a9504754c84b067/metadata/somekey'),
+                'expected': 'service/storage/block/volumes/volume/metadata/key'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/snapshots/b206a1900310484f8a9504754c84b067/metadata/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/snapshots/snapshot/metadata/key'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/os-volume-transfer/b206a1900310484f8a9504754c84b067/accept'),
+                'expected': 'service/storage/block/os-volume-transfer/transfer/accept'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/os-volume-transfer/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/os-volume-transfer/transfer'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/attachments/b206a1900310484f8a9504754c84b067/action'),
+                'expected': 'service/storage/block/attachments/attachment/action'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/capabilities/somehostname'),
+                'expected': 'service/storage/block/capabilities/host'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/consistencygroups/b206a1900310484f8a9504754c84b067/delete'),
+                'expected': 'service/storage/block/consistencygroups/consistencygroup/delete'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/cgsnapshots/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/cgsnapshots/cgsnapshot'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/group_snapshots/b206a1900310484f8a9504754c84b067/action'),
+                'expected': 'service/storage/block/group_snapshots/snapshot/action'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/group_types/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/group_types/type'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/group_types/b206a1900310484f8a9504754c84b067/group_specs/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/block/group_types/type/group_specs/spec'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/os-hosts/somehostname'),
+                'expected': 'service/storage/block/os-hosts/host'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/qos-specs/b206a1900310484f8a9504754c84b067/disassociate_all'),
+                'expected': 'service/storage/block/qos-specs/spec/disassociate_all'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/os-quota-class-sets/quotaclassname'),
+                'expected': 'service/storage/block/os-quota-class-sets/class'
+            },
+            {
+                'request': Request.blank(
+                    path='/v3/b206a1900310484f8a9504754c84b067/os-quota-sets/b206a1900310484f8a9504754c84b067/defaults'),
+                'expected': 'service/storage/block/os-quota-sets/quota/defaults'
+            }
+        ]
+
+        for stim in stimuli:
+            req = stim.get('request')
+            expected = stim.get('expected')
+            self.assertEqual(
+                self.cinder.determine_target_type_uri(req),
                 expected,
                 "target_type_uri of '{0}' should be '{1}'".format(req, expected)
             )

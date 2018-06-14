@@ -12,7 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from webob import Response
+import json
+from webob import Request, Response
+
+
+def create_request(path, method='GET', body_dict=None):
+    r = Request.blank(path=path)
+    r.method = method
+    if body_dict:
+        r.json_body = json.dumps(body_dict)
+        r.content_type = 'application/json'
+    return r
 
 
 class FakeApp(object):

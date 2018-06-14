@@ -34,6 +34,7 @@ class TargetTypeURIStrategy(object):
         self.strategy = strategy
         self.prefix = prefix
         self.mapping = mapping
+        self._target_type_uri = None
 
     def determine_target_type_uri(self, req):
         """
@@ -51,7 +52,8 @@ class TargetTypeURIStrategy(object):
                     if p:
                         target_type_uri.append(p)
                         continue
-                if common.is_version_string(part):
+                # ensure no versions or uids are added to the target_type_uri
+                if common.is_version_string(part) or common.is_uid_string(part):
                     continue
                 if len(part) > 1:
                     target_type_uri.append(part)
@@ -101,9 +103,12 @@ class TargetTypeURIStrategy(object):
         mapping = self.mapping.get(previous_part, None)
         if mapping:
             return mapping
+        # ignore if previous part is version as in /v3/<project_id>/...
+        if common.is_version_string(previous_part):
+            return None
         if common.is_uid_string(part):
             return previous_part.rstrip('s')
-        return
+        return None
 
 
 class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
@@ -171,5 +176,27 @@ class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
         }
         super(GlanceTargetTypeURIStrategy, self).__init__(strategy='glance',
                                                           prefix='service/storage/image',
+                                                          mapping=mapping
+                                                          )
+
+
+class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        mapping = {
+            'extra_specs': 'key',
+            'encryption': 'key',
+            'metadata': 'key',
+            'os-volume-transfer': 'transfer',
+            'capabilities': 'host',
+            'group_snapshots': 'snapshot',
+            'group_types': 'type',
+            'group_specs': 'spec',
+            'os-hosts': 'host',
+            'qos-specs': 'spec',
+            'os-quota-class-sets': 'class',
+            'os-quota-sets': 'quota',
+        }
+        super(CinderTargetTypeURIStrategy, self).__init__(strategy='cinder',
+                                                          prefix='service/storage/block',
                                                           mapping=mapping
                                                           )

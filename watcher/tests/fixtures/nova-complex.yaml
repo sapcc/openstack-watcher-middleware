@@ -33,34 +33,7 @@ custom_actions:
             action_type: read/list
 
       - action:
-        - changePassword: update/changePassword
-        - reboot: update/reboot
-        - rebuild: update/rebuild
-        - resize: update/resize
-        - restore: update/Restore
-        - confirmResize: update/confirmResize
-        - revertResize: update/revertResize
-        - createImage: update/createImage
-        - pause: update/pause
-        - unpause: update/unpause
-        - suspend: update/suspend
-        - resume: update/resume
-        - migrate: update/migrate
-        - resetNetwork: update/resetNetwork
-        - injectNetwork: update/injectNetwork
-        - lock: update/lock
-        - unlock: update/unlock
-        - createBackup: update/createBackup
-        - os-migrateLive: update/os-migrateLive
-        - os-resetState: update/os-resetState
-        - evacuate: update/evacuate
-        - addSecurityGroup: update/addSecurityGroup
-        - removeSecurityGroup: update/removeSecurityGroup
-        - addFloatingIp: update/addFloatingIp
-        - removeFloatingIp: update/removeFloatingIp
-        - os-getConsoleOutput: update/os-getConsoleOutput
         - os-getVNCConsole: update/os-getVNCConsole
-        - forceDelete: update/forceDelete
 
       - os-instance-actions:
         - method: GET
@@ -78,10 +51,6 @@ custom_actions:
       - os-extra_specs:
         - method: GET
           action_type: read/list
-
-      - action:
-        - addTenantAccess: update/addTenantAccess
-        - removeTenantAccess: update/removeTenantAccess
 
   images:
     - method: GET
@@ -103,10 +72,6 @@ custom_actions:
   os-aggregates:
     - method: GET
       action_type: read/list
-    - os-aggregate:
-      - action:
-        - add_host: update/add_host
-        - remove_host: update/remove_host
 
   os-certificates:
     - method: GET
@@ -177,13 +142,6 @@ custom_actions:
   os-networks:
     - method: GET
       action_type: read/list
-
-    - network:
-      - action:
-        - associate_host: update/associate_host
-        - disassociate_host: update/disassociate_host
-        - disassociate: update/disassociate
-        - disassociate_project: udpate/disassociate_project
 
   os-quota-sets:
     - method: GET

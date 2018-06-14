@@ -304,5 +304,21 @@ def determine_openstack_action_from_request(req):
         return action
 
 
+def openstack_action_to_cadf_action(os_action, os_prefix='os-', cadf_prefix='update/'):
+    """
+    in most cases the openstack action can be converted to a cadf action simply by:
+    (1) removing os_prefix from the os_action
+    (2) adding a cadf_prefix to the cadf action
+
+    :param os_action: the openstack action as found in a request body
+    :param os_prefix: prefix to trim from the os_action
+    :param cadf_prefix: prefix to the cadf action
+    :return: the cadf action
+    """
+    if not os_action:
+        return taxonomy.UNKNOWN
+    return cadf_prefix + os_action.lstrip(os_prefix)
+
+
 def string_to_bool(bool_string):
     return bool_string.lower() == 'true'

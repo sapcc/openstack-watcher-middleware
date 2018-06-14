@@ -26,6 +26,7 @@ class TestCommon(unittest.TestCase):
     def test_is_version_string(self):
         stimuli = {
             'v2': True,
+            'v3': True,
             'v2.0': True,
             'v2.542.2': True,
             'foobar': False,
@@ -35,7 +36,7 @@ class TestCommon(unittest.TestCase):
         for stim, expected in six.iteritems(stimuli):
             self.assertEqual(
                 common.is_version_string(stim),
-                expected
+                expected,
             )
 
     def test_is_uid_string(self):
@@ -46,7 +47,7 @@ class TestCommon(unittest.TestCase):
             '1a410d1f-2f62-4f79-bc94-c9b635144c51': True,
             'action': False,
             'auth': False,
-            'v2': False,
+            'v2': False
         }
 
         for stim, expected in six.iteritems(stimuli):
