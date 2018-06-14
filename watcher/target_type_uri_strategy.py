@@ -188,7 +188,7 @@ class NovaTargetTypeURIStrategy(GenericTargetTypeURIStrategy):
             'os-instance-actions': 'instance-action',
             'os-keypairs': 'keypair',
             'os-networks': 'network',
-            'os-security-group-rules': 'rules',
+            'os-security-group-rules': 'rule',
             'os-security-groups': 'security-group',
             'os-simple-tenant-usage': 'tenant',
             'os-volume_attachments': 'attachment'
