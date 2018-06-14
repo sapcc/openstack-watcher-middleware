@@ -123,6 +123,7 @@ This configuration results in the following mapping:
 |---------------------------------------|-------------------|
 ````
 
+Find more examples [here](./etc).
 
 ## Installation & Usage
 
@@ -157,9 +158,9 @@ and configure by adding the following snippet to the paste.ini:
 ```yaml
 [filter:watcher]
 use = egg:watcher-middleware#watcher
-# service_name according to CADF specification. will be prefixed with 'service/'
-# example: storage/object
-service_name = <service_name>
+# service_type as defined in service catalog
+# example: object-store, compute, dns, etc.
+service_type = <service_type>
 ```
 Optional settings:
 ```yaml
@@ -171,13 +172,13 @@ config_file = /etc/watcher.yaml
 project_id_from_path = true | false
 # determine the project id from the service catalog
 project_id_from_service_catalog = true | false
-# specify service type as defined in service catalog
-# example: object-store
-keystone_service_type = <service_type>
 
-# used to overwrite default 'service/<service_name>' 
-# example: object-store
-service_prefix = <prefix>
+# per default the target.type_uri is prefixed by 'service/<service_type>/'.
+# if the cadf spec. requires a different prefix, it might be given here 
+# example: swift (object-store)
+# service_type = object-store would result in 'service/object-store/', but cadf requires 'service/storage/object/',
+# so one needs to set cadf_service_name = service/storage/object
+cadf_service_name = <service_name>
 
 # metrics are emitted via StatsD
 statsd_host = 127.0.0.1

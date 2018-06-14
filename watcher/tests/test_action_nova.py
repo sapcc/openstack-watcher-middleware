@@ -53,14 +53,14 @@ class TestNova(unittest.TestCase):
 
         for s in stimuli:
             self.assertEqual(
-                common.determine_custom_action(config, s.get('target_type_uri')),
+                common.determine_custom_cadf_action(config, s.get('target_type_uri')),
                 s.get('expected'),
                 s.get('help')
             )
 
     def test_determine_action(self):
         self.assertEqual(
-            common.determine_action('GET', '/v2.0/servers/detail'),
+            common.determine_cadf_action('GET', '/v2.0/servers/detail'),
             'read/list',
             "the action for 'GET /v2.0/servers/' should be 'read/list'"
         )
@@ -72,76 +72,78 @@ class TestNova(unittest.TestCase):
 
         stimuli = [
             {
-                'target_type_uri': 'service/compute/servers/server/action/addFloatingIp',
+                'target_type_uri': 'service/compute/servers/server/action',
                 'method': 'POST',
-                'expected': 'update/addFloatingIp',
-                'help': "the custom action of 'POST compute/servers/server/action/addFloatingIp' should be 'update/addFloatingIp'"
+                'os_action': 'addFloatingIp',
+                'expected': 'update/addFloatingIp'
+            },
+            {
+                'target_type_uri': 'service/compute/servers/server/action',
+                'method': 'POST',
+                'os_action': 'removeSecurityGroup',
+                'expected': 'update/removeSecurityGroup'
             },
             {
                 'target_type_uri': 'service/compute/os-snapshots',
-                'expected': 'read/list',
-                'help': "the action for 'GET compute/os-snapshots' should be 'read/list'"
+                'expected': 'read/list'
             },
             {
                 'target_type_uri': 'service/compute/os-snapshots',
                 'method': 'POST',
-                'expected': 'unknown',
-                'help': "action for 'POST compute/os-snapshots' should be 'unknown'",
+                'expected': 'unknown'
             },
             {
                 'target_type_uri': 'service/compute/servers',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/servers' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
                 'target_type_uri': 'service/compute/servers/server/ips',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/servers/server/ips' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
                 'target_type_uri': 'service/compute/servers/server/ips/label',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/servers/server/ips/label' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/servers/server/action/os-getConsoleOutput',
-                'expected': 'update/os-getConsoleOutput',
-                'help': "action for 'GET compute/servers/server/action/os-getConsoleOutput' should be 'update/os-getConsoleOutput'",
+                'target_type_uri': 'service/compute/servers/server/action',
+                'os_action': 'os-getConsoleOutput',
+                'expected': 'update/os-getConsoleOutput'
             },
             {
                 'target_type_uri': 'service/compute/servers/os-instance-actions',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/servers/os-instance-actions' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
                 'target_type_uri': 'service/compute/flavors/flavor/os-extra_specs',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/flavors/flavor/os-extra_specs' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/flavors/flavor/action/addTenantAccess',
+                'target_type_uri': 'service/compute/flavors/flavor/action',
                 'method': 'POST',
-                'expected': 'update/addTenantAccess',
-                'help': "action for 'POST compute/flavors/flavor/action/addTenantAccess' should be 'update/addTenantAccess'",
+                'os_action': 'addTenantAccess',
+                'expected': 'update/addTenantAccess'
             },
             {
                 'target_type_uri': 'service/compute/images/image/metadata',
-                'expected': 'read/list',
-                'help': "action for 'GET compute/images/image/metadata' should be 'read/list'",
+                'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/compute/os-aggregates/os-aggregate/action/add_host',
+                'target_type_uri': 'service/compute/os-aggregates/os-aggregate/action',
                 'method': 'POST',
-                'expected': 'update/add_host',
-                'help': "action for 'POST compute/os-aggregates/os-aggregate/action/add_host' should be 'update/add_host'",
+                'os_action': 'add_host',
+                'expected': 'update/add_host'
             },
         ]
 
         for s in stimuli:
+            target_type_uri = s.get('target_type_uri')
+            method = s.get('method', 'GET')
+            os_action = s.get('os_action')
+            expected = s.get('expected')
             self.assertEqual(
-                common.determine_custom_action(config, s.get('target_type_uri'), s.get('method', 'GET')),
-                s.get('expected'),
-                s.get('help')
+                common.determine_custom_cadf_action( config,target_type_uri, method, os_action,),
+                expected,
+                "cadf action for '{0} {1} {2}' should be '{3}'".format(method, target_type_uri, os_action, expected)
             )
 
 

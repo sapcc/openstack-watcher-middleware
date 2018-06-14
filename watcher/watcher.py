@@ -34,15 +34,16 @@ class OpenStackWatcherMiddleware(object):
     """
     def __init__(self, app, config, logger=log.getLogger(__name__)):
         log.register_options(cfg.CONF)
-        log.setup(cfg.CONF, "openstack_watcher_middleware")
+        log.setup(cfg.CONF, 'openstack_watcher_middleware')
         self.logger = logger
         self.app = app
         self.wsgi_config = config
         self.watcher_config = {}
-        self.service_name = config.get("service_name", taxonomy.UNKNOWN)
-        self.service_type = config.get('keystone_service_type', None)
+        self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
+        self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
         # prefix for target_type_uri
-        self.prefix = self.wsgi_config.get('service_prefix', 'service/{0}/'.format(self.service_name))
+        self.prefix = self.cadf_service_name or \
+            self.wsgi_config.get('service_prefix', 'service/{0}/'.format(self.service_type))
         # get the project uid from the request path or from the token (default)
         self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('project_id_from_path', 'False'))
         self.is_project_id_from_service_catalog = common.string_to_bool(
@@ -93,20 +94,21 @@ class OpenStackWatcherMiddleware(object):
 
         target_type_uri = self.determine_target_type_uri(req)
 
-        action = taxonomy.UNKNOWN
+        cadf_action = taxonomy.UNKNOWN
         # determine action as per custom action configuration
         custom_action_config = self.watcher_config.get('custom_actions', {})
         if custom_action_config:
-            action = common.determine_custom_action(
+            cadf_action = common.determine_custom_cadf_action(
                 config=custom_action_config,
                 target_type_uri=target_type_uri,
                 method=req.method,
+                os_action=common.determine_openstack_action_from_request(req),
                 prefix=self.prefix
             )
-            self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, action))
-        if not action or action == taxonomy.UNKNOWN:
+            self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
+        if not cadf_action or cadf_action == taxonomy.UNKNOWN:
             # determine action based on HTTP method (and path for authentication req)
-            action = common.determine_action_from_request(req)
+            cadf_action = common.determine_cadf_action_from_request(req)
 
         # initiator
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
@@ -117,12 +119,12 @@ class OpenStackWatcherMiddleware(object):
         # target
         environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
         environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
-        environ['WATCHER.ACTION'] = action
-        environ['WATCHER.SERVICE_NAME'] = self.service_name
+        environ['WATCHER.ACTION'] = cadf_action
+        environ['WATCHER.SERVICE_type'] = self.service_type
 
         labels = [
-            "service:{0}".format(self.service_name),
-            "action:{0}".format(action),
+            "service:{0}".format(self.service_type),
+            "action:{0}".format(cadf_action),
             "initiator_project_id:{0}".format(initiator_project_id),
             "initiator_domain_id:{0}".format(initiator_domain_id),
             "target_project_id:{0}".format(target_project_id),
@@ -141,7 +143,7 @@ class OpenStackWatcherMiddleware(object):
             'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
             'target_project_id: {3}, action: {6}, target_type_uri: {7}'
             .format(initiator_project_id, initiator_domain_id, initiator_user_id,
-                    target_project_id, action, target_type_uri
+                    target_project_id, cadf_action, target_type_uri
                     )
         )
 
@@ -297,15 +299,18 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: the target type uri or taxonomy.UNKNOWN
         """
-        if 'object-store' in self.service_name:
+        if 'object-store' == self.service_type:
             swift_strategy = ttu.SwiftTargetTypeURIStrategy(prefix=self.prefix)
             return swift_strategy.determine_target_type_uri(req)
-        elif 'compute' in self.service_name:
+        elif 'compute' == self.service_type:
             nova_strategy = ttu.NovaTargetTypeURIStrategy(prefix=self.prefix)
             return nova_strategy.determine_target_type_uri(req)
+        elif 'image' == self.service_type:
+            glance_strategy = ttu.TargetTypeURIStrategy(prefix=self.prefix)
+            return glance_strategy.determine_target_type_uri(req)
         else:
-            generic_strategy = ttu.GenericTargetTypeURIStrategy(prefix=self.prefix)
-        return generic_strategy.determine_target_type_uri(req)
+            generic_strategy = ttu.TargetTypeURIStrategy(strategy=self.service_type, prefix=self.prefix)
+            return generic_strategy.determine_target_type_uri(req)
 
 
 def load_config(config_path):

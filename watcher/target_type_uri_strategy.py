@@ -13,8 +13,6 @@
 # under the License.
 
 
-import json
-
 from pycadf import cadftaxonomy as taxonomy
 
 from . import common
@@ -22,22 +20,51 @@ from . import common
 
 class TargetTypeURIStrategy(object):
     """
-    base class for target type uri strategies
+    constructs the target_type_uri from the request path and body
+
+    examples:
+    (1) path: .../v2/zones/012345678abcdef/recordsets/012345678abcdef
+        => <prefix>/zones/zone/recordsets/recordset
+
+    (2) path: .../servers/1234567890abcdef/action
+        body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
+        => <prefix>/servers/server/addFloatingIp
     """
-    def __init__(self, strategy, prefix=None, mapping={}):
+    def __init__(self, strategy='generic', prefix=None, mapping={}):
         self.strategy = strategy
         self.prefix = prefix
         self.mapping = mapping
 
-    def determine_target_type_uri(self, request):
+    def determine_target_type_uri(self, req):
         """
-        determine target type uri from a request path and body
-        evaluating the request body might be necessary for e.g. compute actions
+        :param req: the request
+        :return: the target.type_uri
+        """
+        target_type_uri = []
+        try:
+            path_parts = req.path.lstrip('/').split('/')
 
-        :param request: the request
-        :return: the target type uri or 'unknown'
-        """
-        raise NotImplementedError
+            for index, part in enumerate(path_parts):
+                previous_index = index - 1
+                if previous_index >= 0:
+                    p = self._replace_uid_with_singular_or_custom_mapping(path_parts[previous_index], part)
+                    if p:
+                        target_type_uri.append(p)
+                        continue
+                if common.is_version_string(part):
+                    continue
+                if len(part) > 1:
+                    target_type_uri.append(part)
+
+        except Exception as e:
+            self.logger.warning("failed to get target_type_uri from request path: %s" % str(e))
+            target_type_uri = []
+        finally:
+            # we just have the service
+            if len(target_type_uri) < 1:
+                return taxonomy.UNKNOWN
+            uri = '/'.join(target_type_uri).lstrip('/')
+            return self.add_prefix_target_type_uri(uri)
 
     def add_prefix_target_type_uri(self, target_type_uri):
         """
@@ -79,67 +106,6 @@ class TargetTypeURIStrategy(object):
         return
 
 
-class GenericTargetTypeURIStrategy(TargetTypeURIStrategy):
-    """
-    constructs the target_type_uri from the request path and body
-
-    examples:
-    (1) path: .../v2/zones/012345678abcdef/recordsets/012345678abcdef
-        => <prefix>/zones/zone/recordsets/recordset
-
-    (2) path: .../servers/1234567890abcdef/action
-        body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
-        => <prefix>/servers/server/addFloatingIp
-    """
-    def __init__(self, prefix=None, strategy='generic', mapping={}):
-        super(GenericTargetTypeURIStrategy, self).__init__(strategy=strategy, prefix=prefix, mapping=mapping)
-
-    def determine_target_type_uri(self, req):
-        """
-        :param req: the request
-        :return: the resource key
-        """
-        target_type_uri = []
-        try:
-            path_parts = req.path.lstrip('/').split('/')
-
-            # no /action request. concat path without version or uids
-            for index, part in enumerate(path_parts):
-                previous_index = index - 1
-                if previous_index >= 0:
-                    p = self._replace_uid_with_singular_or_custom_mapping(path_parts[previous_index], part)
-                    if p:
-                        target_type_uri.append(p)
-                        continue
-                if common.is_version_string(part):
-                    continue
-                if len(part) > 1:
-                    target_type_uri.append(part)
-
-            # action request: determine action from body
-            if common.is_action_request(req):
-                json_body = req.json
-                if json_body:
-                    d = json.loads(json_body)
-                    # the 1st key specifies the action type
-                    itm = next(iter(d))
-                    if itm:
-                        target_type_uri.append(itm)
-
-        except (AttributeError, ValueError) as e:
-            self.logger.warning("failed to parse request body: %s" % str(e))
-            target_type_uri = []
-        except Exception as e:
-            self.logger.warning("failed to get target_type_uri from request path: %s" % str(e))
-            target_type_uri = []
-        finally:
-            # we just have the service
-            if len(target_type_uri) < 1:
-                return taxonomy.UNKNOWN
-            uri = '/'.join(target_type_uri).lstrip('/')
-            return self.add_prefix_target_type_uri(uri)
-
-
 class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
     """
     determines the target_type_uri from a swift (object-store) request
@@ -171,7 +137,7 @@ class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
             return self.add_prefix_target_type_uri(uri)
 
 
-class NovaTargetTypeURIStrategy(GenericTargetTypeURIStrategy):
+class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
     """
     determines the target_type_uri of a nova (compute) request
     """
@@ -194,3 +160,16 @@ class NovaTargetTypeURIStrategy(GenericTargetTypeURIStrategy):
             'os-volume_attachments': 'attachment'
         }
         super(NovaTargetTypeURIStrategy, self).__init__(strategy='nova', prefix='service/compute', mapping=mapping)
+
+
+class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        mapping = {
+            'shared-images': 'member',
+            'members': 'member',
+            'tags': 'tag',
+        }
+        super(GlanceTargetTypeURIStrategy, self).__init__(strategy='glance',
+                                                          prefix='service/storage/image',
+                                                          mapping=mapping
+                                                          )

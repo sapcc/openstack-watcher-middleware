@@ -1,0 +1,14 @@
+custom_actions:
+  images:
+    - method: GET
+      action_type: read/list
+
+    - image:
+        - members:
+            - method: POST
+              action_type: update
+
+  shared-images:
+    member:
+      - method: GET
+        action_type: read/list

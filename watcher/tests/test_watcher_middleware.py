@@ -40,10 +40,10 @@ class TestWatcherMiddleware(unittest.TestCase):
 
     def test_nova_get_servers_request(self):
         req = create_request(path='servers/0123456789abcdef0123456789abcdef/action')
-        self.app.service = 'compute'
+        self.app.service_type = 'compute'
 
         self.assertEqual(
-            common.determine_action_from_request(req),
+            common.determine_cadf_action_from_request(req),
             taxonomy.ACTION_READ,
         )
 
@@ -53,29 +53,29 @@ class TestWatcherMiddleware(unittest.TestCase):
             method='POST',
             body_dict={"addFloatingIp": {"address": "10.10.10.10", "fixed_address": "192.168.0.3"}},
         )
-        self.app.service = 'compute'
+        self.app.service_type = 'compute'
 
         self.assertEqual(
-            common.determine_action_from_request(req),
+            common.determine_cadf_action_from_request(req),
             taxonomy.ACTION_CREATE,
         )
 
     def test_designate_get_recordsets(self):
         req = create_request(
             path='/v2/zones/0123456789abcdef0123456789abcdef/recordsets/0123456789abcdef0123456789abcdef')
-        self.app.service = 'dns'
+        self.app.service_type = 'dns'
 
         self.assertEqual(
-            common.determine_action_from_request(req),
+            common.determine_cadf_action_from_request(req),
             taxonomy.ACTION_READ,
         )
 
     def test_swift_put_object_request(self):
         req = create_request(path='/v1/AUTH_account/container/object', method='PUT')
-        self.app.service = 'object-storage'
+        self.app.service_type = 'object-storage'
 
         self.assertEqual(
-            common.determine_action_from_request(req),
+            common.determine_cadf_action_from_request(req),
             taxonomy.ACTION_UPDATE,
         )
 
@@ -99,10 +99,10 @@ class TestWatcherMiddleware(unittest.TestCase):
                 "type": "CREDENTIALS"
             }
         })
-        self.app.service = 'identity'
+        self.app.service_type = 'identity'
 
         self.assertEqual(
-            common.determine_action_from_request(req),
+            common.determine_cadf_action_from_request(req),
             taxonomy.ACTION_AUTHENTICATE,
         )
 

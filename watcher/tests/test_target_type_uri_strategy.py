@@ -21,24 +21,21 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
 
     def setUp(self):
         if not self.isSetUp:
-            self.generic = ttus.GenericTargetTypeURIStrategy()
+            self.generic = ttus.TargetTypeURIStrategy()
             self.nova = ttus.NovaTargetTypeURIStrategy()
             self.swift = ttus.SwiftTargetTypeURIStrategy()
+            self.glance = ttus.GlanceTargetTypeURIStrategy()
             self.isSetUp = True
 
     def test_nova_action_target_type_uri(self):
         stimuli = [
             {
-                'request': create_request('/v2.1/servers/0b1576c8-4928-46f5-8b99-e50de4f7f761'),
-                'expected': 'service/compute/servers/server'
+                'request': create_request('/v2.1'),
+                'expected': 'unknown'
             },
             {
-                'request': create_request(
-                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
-                    method='POST',
-                    body_dict={"addFloatingIp": {"address": "10.10.10.10", "fixed_address": "192.168.0.3"}},
-                ),
-                'expected': 'service/compute/servers/server/action/addFloatingIp'
+                'request': create_request('/v2.1/servers/0b1576c8-4928-46f5-8b99-e50de4f7f761'),
+                'expected': 'service/compute/servers/server'
             },
             {
                 'request': create_request('/v2.1/flavors/0123456789abcdef0123456789abcdef/os-extra_specs'),
@@ -67,6 +64,13 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
             {
                 'request': create_request('servers/0123456789abcdef0123456789abcdef/os-volume_attachments/0123456789abcdef0123456789abcdef'),
                 'expected': 'service/compute/servers/server/os-volume_attachments/attachment'
+            },
+            {
+                'request': create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    body_dict={'removeSecurityGroup': {'name': 'test'}}
+                ),
+                'expected': 'service/compute/servers/server/action'
             }
         ]
 
@@ -79,7 +83,7 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
                 "target_type_uri of '{0}' should be '{1}'".format(req.path, expected)
             )
 
-    def test_designate_get_recordsets_target_type_uri(self):
+    def test_dns_get_recordsets_target_type_uri(self):
         req = create_request(
             path='/v2/zones/0123456789abcdef0123456789abcdef/recordsets/0123456789abcdef0123456789abcdef')
 
@@ -142,10 +146,49 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
         ]
 
         for stim in stimuli:
+            req = stim.get('request')
+            expected = stim.get('expected')
             self.assertEqual(
-                self.swift.determine_target_type_uri(stim.get('request')),
-                stim.get('expected'),
-                stim.get('help')
+                self.swift.determine_target_type_uri(req),
+                expected,
+                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+            )
+
+    def test_glance_target_type_uri(self):
+        stimuli = [
+            {
+                'request': Request.blank(path='/v2/images'),
+                'expected': 'service/storage/image/images'
+            },
+            {
+                'request': Request.blank(path='/v2/images/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/image/images/image'
+            },
+            {
+                'request': Request.blank(path='/v2/images/b206a1900310484f8a9504754c84b067/actions/deactivate'),
+                'expected': 'service/storage/image/images/image/actions/deactivate'
+            },
+            {
+                'request': Request.blank(path='/v2/images/b206a1900310484f8a9504754c84b067/members/123456789'),
+                'expected': 'service/storage/image/images/image/members/member'
+            },
+            {
+                'request': Request.blank(path='/v2/images/b206a1900310484f8a9504754c84b067/tags/foobar'),
+                'expected': 'service/storage/image/images/image/tags/tag'
+            },
+            {
+                'request': Request.blank(path='/v2/schemas/image'),
+                'expected': 'service/storage/image/schemas/image'
+            },
+        ]
+
+        for stim in stimuli:
+            req = stim.get('request')
+            expected = stim.get('expected')
+            self.assertEqual(
+                self.glance.determine_target_type_uri(req),
+                expected,
+                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
             )
 
 

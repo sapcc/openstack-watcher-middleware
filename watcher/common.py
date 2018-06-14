@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 import re
 import six
 
@@ -52,17 +53,17 @@ def _find_id_in_dict(d, key):
     return taxonomy.UNKNOWN
 
 
-def determine_action_from_request(req):
+def determine_cadf_action_from_request(req):
     """
     determines the cadf action from a request
 
     :param req: the request
     :return: the cadf action or None
     """
-    return determine_action(req.method, req.path)
+    return determine_cadf_action(req.method, req.path)
 
 
-def determine_action(method, path=''):
+def determine_cadf_action(method, path=''):
     """
     determines action based on request method and path
 
@@ -72,28 +73,29 @@ def determine_action(method, path=''):
     """
     # remove trailing '/'
     path = path.rstrip('/')
-    # must be an authentication request
+    # POST ../auth/tokens is an authentication request
     if method == 'POST' and 'auth/tokens' in path:
         return taxonomy.ACTION_AUTHENTICATE
-    # GET ../detail requests are read/list
+    # GET ../detail requests are always read/list
     if method == 'GET' and path.endswith('/detail'):
         return taxonomy.ACTION_LIST
-    # try to map everything else
+    # try to map everything else based on http method
     for m_string, tax_action in six.iteritems(method_action_map):
         if m_string.lower() == method.lower():
             return tax_action
     return taxonomy.UNKNOWN
 
 
-def determine_custom_action(config, target_type_uri, method='GET', prefix=None):
+def determine_custom_cadf_action(config, target_type_uri, method='GET', os_action=None, prefix=None):
     """
     Per default the action is determined by the determine_action(req) method based on the requests method
     and, in case of an authentication request, a portion of the request path.
     More granular actions can be defined via configuration and are mapped in this method.
 
     :param config: the custom action configuration
-    :param target_type_uri: the request path without uids, e.g.: 'compute/servers/action/addFloatingIp'
-    :param method: optional HTTP method
+    :param target_type_uri: the request path without uids, e.g.: 'compute/servers/action'
+    :param method: the request's method
+    :param os_action: the openstack action if applicable
     :param prefix: the target_type_uri's prefix
     :return: the custom action as per config or unknown
     """
@@ -104,6 +106,11 @@ def determine_custom_action(config, target_type_uri, method='GET', prefix=None):
 
     if not uri_parts:
         return custom_action
+
+    # include openstack action if it's an../action request but avoid duplication
+    # pep8 says 'os_action in uri_parts' is bad practice, so we do:
+    if os_action and not [itm for itm in uri_parts if itm == os_action]:
+        uri_parts.append(os_action)
 
     for index, part in enumerate(uri_parts):
         if isinstance(part_config, dict):
@@ -117,18 +124,18 @@ def determine_custom_action(config, target_type_uri, method='GET', prefix=None):
             if isinstance(part_config, str):
                 return part_config
             elif isinstance(part_config, list):
-                return _find_custom_action_in_list(method, part_config)
+                return _find_custom_cadf_action_in_list(method, part_config)
         # not the last part of target_type_uri, but found a list:
         # look deeper until end reached or a configuration was found
         if isinstance(part_config, list):
             for itm in part_config:
                 conf = itm.get(uri_parts[index + 1], None)
                 if conf:
-                    return determine_custom_action(conf, target_type_uri, method)
+                    return determine_custom_cadf_action(conf, target_type_uri, method, os_action, prefix)
     return custom_action
 
 
-def _find_custom_action_in_list(method, config_list):
+def _find_custom_cadf_action_in_list(method, config_list):
     """
     returns the custom action in a list of configurations for a target or UNKNOWN
     l = [{'method': 'GET', 'action': 'read/list'}, .. ]
@@ -262,6 +269,39 @@ def is_version_string(string):
     if version_pattern.match(string):
         return True
     return False
+
+
+def determine_openstack_action_from_request(req):
+    """
+    get openstack action from request's json body
+    consider only request with 'action' in path and payload is json
+
+    request:
+        path: '/v2.1/servers/0123456789abcdef0123456789abcdef/action'
+        body: {'addFloatingIp': ... }
+    result:
+        action: addFloatingIp
+
+    :param req: the request with json payload
+    :return: the action or None
+    """
+    action = None
+    # return here if not 'action' in path and body not json
+    if not is_action_request(req):
+        return action
+
+    try:
+        json_body = req.json
+        if json_body:
+            d = json.loads(json_body)
+            # the 1st key specifies the action type
+            action = next(iter(d))
+            if action:
+                return action
+    except Exception:
+        pass
+    finally:
+        return action
 
 
 def string_to_bool(bool_string):
