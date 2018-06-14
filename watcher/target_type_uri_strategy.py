@@ -191,6 +191,6 @@ class NovaTargetTypeURIStrategy(GenericTargetTypeURIStrategy):
             'os-security-group-rules': 'rules',
             'os-security-groups': 'security-group',
             'os-simple-tenant-usage': 'tenant',
-            'os-volume_attachments': 'attachments'
+            'os-volume_attachments': 'attachment'
         }
         super(NovaTargetTypeURIStrategy, self).__init__(strategy='nova', prefix='service/compute', mapping=mapping)

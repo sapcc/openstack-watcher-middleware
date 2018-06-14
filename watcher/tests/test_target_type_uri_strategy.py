@@ -64,6 +64,10 @@ class TargetTypeURIStrategyTests(unittest.TestCase):
                 'request': create_request('/v2.1/os-hypervisors/somehypervisorname/servers'),
                 'expected': 'service/compute/os-hypervisors/hypervisor/servers'
             },
+            {
+                'request': create_request('servers/0123456789abcdef0123456789abcdef/os-volume_attachments/0123456789abcdef0123456789abcdef'),
+                'expected': 'service/compute/servers/server/os-volume_attachments/attachment'
+            }
         ]
 
         for stim in stimuli:

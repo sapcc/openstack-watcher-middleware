@@ -1,20 +1,15 @@
 # Actions are determined by evaluating the request method, for example a PUT request translates to an 'update' action, POST to an 'create' action.
 # In combination with the target_type_uri this represents sufficient information to enable basic rate limit and audit.
-# However, more granularity might be required.
+# However, more granularity or introducing alternative action types might be required.
 # This can be achieved by defining actions using the below configuration.
-
-# Per default a GET ../servers/detail request would be action=read, target_type_uri=compute/servers/detail
-# The below configuration for the same request would produce: action=read/list/detail, target_type_uri=compute/servers/detail
 custom_actions:
   os-snapshots:
     - method: GET
       action_type: read/list
-    - detail: read/list
 
   os-volumes:
     - method: GET
       action_type: read/list
-    - detail: read/list
 
   os-volume-types:
     - method: GET
@@ -27,7 +22,6 @@ custom_actions:
   servers:
     - method: GET
       action_type: read/list
-    - detail: read/list
 
     - server:
       - metadata:
@@ -42,6 +36,22 @@ custom_actions:
           - method: GET
             action_type: read/list
 
+      - os-security-groups:
+        - method: GET
+          action_type: read/list
+
+      - os-server-password:
+        - method: POST
+          action_type: update
+
+      - os-virtual-interfaces:
+        - method: GET
+          action_type: read/list
+
+      - os-volume_attachments:
+        - method: GET
+          action_type: read/list
+
       - action:
         - changePassword: update/changePassword
         - reboot: update/reboot
@@ -51,6 +61,8 @@ custom_actions:
         - confirmResize: update/confirmResize
         - revertResize: update/revertResize
         - createImage: update/createImage
+        - rescue: update/rescue
+        - unrescue: update/unrescue
         - pause: update/pause
         - unpause: update/unpause
         - suspend: update/suspend
@@ -71,6 +83,8 @@ custom_actions:
         - os-getConsoleOutput: update/os-getConsoleOutput
         - os-getVNCConsole: update/os-getVNCConsole
         - forceDelete: update/forceDelete
+        - os-stop: update/stop
+        - os-start: update/start
 
       - os-instance-actions:
         - method: GET
@@ -79,7 +93,6 @@ custom_actions:
   flavors:
     - method: GET
       action_type: read/list
-    - detail: read/list
 
     - flavor:
       - os-flavor-access:
@@ -97,7 +110,6 @@ custom_actions:
   images:
     - method: GET
       action_type: read/list
-    - detail: read/list
 
     - image:
       - metadata:
@@ -178,7 +190,6 @@ custom_actions:
         action_type: read/list
 
     - hypervisors:
-      - detail: read/list
       - servers:
         - method: GET
           action_type: read/list
@@ -202,5 +213,22 @@ custom_actions:
     - method: GET
       action_type: read/list
 
+  os-services:
+    - method: GET
+      action_type: read/list
 
+    - enable:
+      - method: PUT
+        action_type: enable
 
+    - disable:
+      - method: PUT
+        action_type: enable
+
+  os-security-groups:
+    - method: GET
+      action_type: read/list
+
+  os-simple-tenant-usage:
+    - method: GET
+      action_type: read/list
