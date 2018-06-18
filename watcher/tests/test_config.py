@@ -29,7 +29,7 @@ class MyTestCase(unittest.TestCase):
             'os-snapshots': [
                 {
                     'method': 'GET',
-                    'action': 'read/list'
+                    'action_type': 'read/list'
                 },
                 {
                     'detail': 'read/list'
@@ -38,7 +38,7 @@ class MyTestCase(unittest.TestCase):
             'os-volumes': [
                 {
                     'method': 'GET',
-                    'action': 'read/list'
+                    'action_type': 'read/list'
                 },
                 {
                     'detail': 'read/list'
@@ -47,7 +47,7 @@ class MyTestCase(unittest.TestCase):
             'os-volume-types': [
                 {
                     'method': 'GET',
-                    'action': 'read/list'
+                    'action_type': 'read/list'
                 }
             ],
             'servers': [
@@ -55,24 +55,33 @@ class MyTestCase(unittest.TestCase):
                     'detail': 'read/list'
                 },
                 {
-                    'action':
-                        [
-                            { 'addFloatingIp': 'update/addFloatingIp' },
-                            { 'removeFloatingIp': 'update/removeFloatingIp'},
-                        ]
+                    'server': [
+                        {
+                            'action':
+                                [
+                                    {'addFloatingIp': 'update/addFloatingIp'},
+                                    {'removeFloatingIp': 'update/removeFloatingIp'},
+                                ]
 
+                        }
+                    ]
                 }
+
             ],
             'flavors': [
                 {
                     'detail': 'read/list'
                 },
                 {
-                    'action':
-                        [
-                            {'addTenantAccess': 'add/project-access'},
-                            {'removeTenantAccess': 'remove/project-access'}
-                        ]
+                    'flavor': [
+                        {
+                            'action':
+                                [
+                                    {'addTenantAccess': 'add/project-access'},
+                                    {'removeTenantAccess': 'remove/project-access'}
+                                ]
+                        }
+                    ]
                 }
             ]
         }
@@ -89,27 +98,27 @@ class MyTestCase(unittest.TestCase):
             'account': [
                 {
                     'method': 'GET',
-                    'action': 'read/list'
+                    'action_type': 'read/list'
                 },
                 {
                     'method': 'POST',
-                    'action': 'update'
+                    'action_type': 'update'
                 },
                 {
                     'container': [
                         {
                             'method': 'GET',
-                            'action': 'read/list'
+                            'action_type': 'read/list'
                         },
                         {
                             'method': 'POST',
-                            'action': 'update'
+                            'action_type': 'update'
                         },
                         {
                             'object': [
                                 {
                                     'method': 'POST',
-                                    'action': 'update'
+                                    'action_type': 'update'
                                 }
                             ]
                         }

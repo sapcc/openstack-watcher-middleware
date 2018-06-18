@@ -1,30 +1,33 @@
 custom_actions:
   os-snapshots:
     - method: GET
-      action: read/list
+      action_type: read/list
 
     - detail: read/list
 
   os-volumes:
     - method: GET
-      action: read/list
+      action_type: read/list
 
     - detail: read/list
 
   os-volume-types:
     - method: GET
-      action: read/list
+      action_type: read/list
 
   servers:
     - detail: read/list
     # The request POST ../servers/<server_id>/action with body { "addFloatingIp": ... } would produce: action=create, target_type_uri=compute/servers/addFloatingIp
     # The below configuration modifies the action to: action=update/add/floatingip
-    - action:
-      - addFloatingIp: update/addFloatingIp
-      - removeFloatingIp: update/removeFloatingIp
+    - server:
+      - action:
+        - addFloatingIp: update/addFloatingIp
+        - removeFloatingIp: update/removeFloatingIp
 
   flavors:
     - detail: read/list
-    - action:
-      - addTenantAccess: add/project-access
-      - removeTenantAccess: remove/project-access
+
+    - flavor:
+      - action:
+        - addTenantAccess: add/project-access
+        - removeTenantAccess: remove/project-access

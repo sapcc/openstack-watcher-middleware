@@ -26,6 +26,16 @@ from . import errors
 from . import target_type_uri_strategy as ttu
 
 
+STRATEGIES = {
+    'object-store': ttu.SwiftTargetTypeURIStrategy,
+    'compute': ttu.NovaTargetTypeURIStrategy,
+    'image': ttu.GlanceTargetTypeURIStrategy,
+    'volume': ttu.CinderTargetTypeURIStrategy,
+    'network': ttu.NeutronTargetTypeURIStrategy,
+    'dns': ttu.DesignateTargetTypeURIStrategy
+}
+
+
 class OpenStackWatcherMiddleware(object):
     """
     OpenStack Watcher Middleware
@@ -39,16 +49,15 @@ class OpenStackWatcherMiddleware(object):
         self.app = app
         self.wsgi_config = config
         self.watcher_config = {}
+
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
         self.custom_action_config = self.watcher_config.get('custom_actions', {})
-        # prefix for target_type_uri
-        self.prefix = self.cadf_service_name or \
-            self.wsgi_config.get('service_prefix', 'service/{0}/'.format(self.service_type))
         # get the project uid from the request path or from the token (default)
         self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('project_id_from_path', 'False'))
         self.is_project_id_from_service_catalog = common.string_to_bool(
             self.wsgi_config.get('project_id_from_service_catalog', 'False'))
+        self.prefix = self.cadf_service_name or 'service/{0}'.format(self.service_type)
 
         config_file_path = config.get('config_file', None)
         if config_file_path:
@@ -109,7 +118,7 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
         environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
         environ['WATCHER.ACTION'] = cadf_action
-        environ['WATCHER.SERVICE_type'] = self.service_type
+        environ['WATCHER.SERVICE_TYPE'] = self.service_type
 
         labels = [
             "service:{0}".format(self.service_type),
@@ -288,27 +297,25 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: the target type uri or taxonomy.UNKNOWN
         """
-        if 'object-store' == self.service_type:
-            swift_strategy = ttu.SwiftTargetTypeURIStrategy(prefix=self.prefix)
-            return swift_strategy.determine_target_type_uri(req)
-        elif 'compute' == self.service_type:
-            nova_strategy = ttu.NovaTargetTypeURIStrategy(prefix=self.prefix)
-            return nova_strategy.determine_target_type_uri(req)
-        elif 'image' == self.service_type:
-            glance_strategy = ttu.GlanceTargetTypeURIStrategy(prefix=self.prefix)
-            return glance_strategy.determine_target_type_uri(req)
-        elif 'cinder' == self.service_type:
-            cinder_strategy = ttu.CinderTargetTypeURIStrategy(prefix=self.prefix)
-            return cinder_strategy.determine_target_type_uri(req)
-        else:
-            generic_strategy = ttu.TargetTypeURIStrategy(strategy=self.service_type, prefix=self.prefix)
-            return generic_strategy.determine_target_type_uri(req)
+        strat = STRATEGIES.get(
+            self.service_type,
+            ttu.TargetTypeURIStrategy
+        )
+        strategy = strat()
+        strategy.name = self.service_type
+        strategy.logger = self.logger
+
+        if self.prefix and not strategy.prefix:
+            strategy.prefix = self.prefix
+
+        self.logger.debug("selected strategy '{0}' to determine target.type_uri".format(strategy.name))
+        return strategy.determine_target_type_uri(req)
 
     def determine_cadf_action(self, custom_action_config, target_type_uri, req):
         """
         attempts to determine the cadf action for a request in the following order:
         (1) return custom action if one is configured
-        (2) return action
+        (2) if /action, /os-instance-action request, return action from request body
         (3) return action based on request method
 
         :param custom_action_config: configuration of custom actions

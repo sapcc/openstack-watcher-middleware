@@ -18,65 +18,11 @@ class TestNova(unittest.TestCase):
         if self.is_setup:
             return
         self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {})
+        self.watcher.service_type = 'compute'
         self.nova = ttus.NovaTargetTypeURIStrategy()
         self.is_setup = True
 
-    def test_custom_action_simple(self):
-        config = {
-           'servers': [
-                {'detail': 'read/list'},
-                {'action':[
-                    {'addFloatingIp': 'update/addFloatingIp'},
-                    {'removeFloatingIp': 'update/removeFloatingIp'},
-                ]}
-            ],
-           'flavors': [
-                {'detail': 'read/list'},
-                {'action': [
-                    {'addTenantAccess': 'add/project-access'},
-                    {'removeTenantAccess': 'remove/project-access'}
-                ]}
-            ]
-        }
-
-        stimuli = [
-            {
-                'target_type_uri': 'service/compute/servers/server/action/addFloatingIp',
-                'expected': 'update/addFloatingIp',
-                'help': "the custom action of 'POST compute/servers/action/addFloatingIp' should be 'update/addFloatingIp'"
-            },
-            {
-                'target_type_uri': 'service/compute/servers/detail',
-                'expected': 'read/list',
-                'help': "the custom action of 'GET compute/servers/detail' should be 'read/list'"
-            },
-            {
-                'target_type_uri': 'service/compute/flavors/action/addTenantAccess',
-                'expected': 'add/project-access',
-                'help': "the custom action of 'POST compute/flavors/flavor/action/addTenantAccess' should be 'add/project-access'"
-            },
-            {
-                'target_type_uri': 'service/compute/flavors/action/removeTenantAccess',
-                'expected': 'remove/project-access',
-                'help': "the custom action of 'POST compute/flavors/flavor/action/removeTenantAccess' should be 'remove/project-access'"
-            }
-        ]
-
-        for s in stimuli:
-            self.assertEqual(
-                common.determine_custom_cadf_action(config, s.get('target_type_uri')),
-                s.get('expected'),
-                s.get('help')
-            )
-
-    def test_determine_action(self):
-        self.assertEqual(
-            common.determine_cadf_action('GET', '/v2.0/servers/detail'),
-            'read/list',
-            "the action for 'GET /v2.0/servers/' should be 'read/list'"
-        )
-
-    def test_custom_action_complex(self):
+    def test_custom_action(self):
         raw_config = load_config(NOVA_COMPLEX_CONFIG_PATH)
         config = raw_config.get('custom_actions', None)
         self.assertIsNotNone(config, "the nova complex config should not be None")
@@ -170,6 +116,8 @@ class TestNova(unittest.TestCase):
             req = s.get('request')
             expected = s.get('expected')
             target_type_uri = self.nova.determine_target_type_uri(req)
+            self.assertIsNotNone(target_type_uri, "target.type_uri should not be None. request: {0}".format(req))
+            self.assertIsNot(target_type_uri, 'unknown', "target.type_uri shoud not be 'unknown'. request: {0}".format(req))
             self.assertEqual(
                 self.watcher.determine_cadf_action(config, target_type_uri, req),
                 expected,

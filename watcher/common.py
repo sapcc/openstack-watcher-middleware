@@ -112,27 +112,38 @@ def determine_custom_cadf_action(config, target_type_uri, method='GET', os_actio
     if os_action and not [itm for itm in uri_parts if itm == os_action]:
         uri_parts.append(os_action)
 
-    for index, part in enumerate(uri_parts):
-        if isinstance(part_config, dict):
-            conf = part_config.get(part, None)
-            if conf:
-                part_config = conf
-        # if this is the last part of the target_type_uri, look for the action_type, which
-        # might be directly accessible (string) or part of a list, which looks like:
-        # [ {method: <http_method>, action_type: <action_type}, {..} ]
-        if index == len(uri_parts) - 1:
-            if isinstance(part_config, str):
-                return part_config
-            elif isinstance(part_config, list):
-                return _find_custom_cadf_action_in_list(method, part_config)
-        # not the last part of target_type_uri, but found a list:
-        # look deeper until end reached or a configuration was found
-        if isinstance(part_config, list):
-            for itm in part_config:
-                conf = itm.get(uri_parts[index + 1], None)
+    try:
+        for part in uri_parts:
+            is_last_part = part == uri_parts[-1]
+            if isinstance(part_config, dict):
+                conf = part_config.get(part, None)
                 if conf:
-                    return determine_custom_cadf_action(conf, target_type_uri, method, os_action, prefix)
-    return custom_action
+                    part_config = conf
+            elif isinstance(part_config, list):
+                conf = _find_key_in_list(part, part_config)
+                if not conf:
+                    break
+                part_config = conf
+            # if this is the last part of the target_type_uri, look for the action_type, which
+            # might be directly accessible (string) or part of a list, which looks like:
+            # [ {method: <http_method>, action_type: <action_type}, {..} ]
+            if is_last_part:
+                if isinstance(part_config, str):
+                    custom_action = part_config
+                    break
+                elif isinstance(part_config, list):
+                    custom_action = _find_custom_cadf_action_in_list(method, part_config)
+                    break
+    finally:
+        return custom_action
+
+
+def _find_key_in_list(key, list_to_search):
+    for itm in list_to_search:
+        part_config = itm.get(key, None)
+        if part_config:
+            return part_config
+    return None
 
 
 def _find_custom_cadf_action_in_list(method, config_list):

@@ -12,7 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-
 from pycadf import cadftaxonomy as taxonomy
 
 from . import common
@@ -30,17 +29,28 @@ class TargetTypeURIStrategy(object):
         body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
         => <prefix>/servers/server/addFloatingIp
     """
-    def __init__(self, strategy='generic', prefix=None, mapping={}):
-        self.strategy = strategy
+    def __init__(self, name='generic', prefix=None, mapping={}, logger=None):
+        """
+        a strategy to determine the target.type_uri
+
+        :param strategy: the name of the strategy
+        :param prefix: the prefix to apply to the target.type_uri
+        :param mapping: the mapping of {plural: singular}
+               only required if the singular != plural.rstrip(s)
+               example: {'service_profiles': 'profile'}
+        :param logger: the logger
+        """
+        self.name = name
         self.prefix = prefix
         self.mapping = mapping
-        self._target_type_uri = None
+        self.logger = logger
 
     def determine_target_type_uri(self, req):
         """
         :param req: the request
         :return: the target.type_uri
         """
+
         target_type_uri = []
         try:
             path_parts = req.path.lstrip('/').split('/')
@@ -88,7 +98,7 @@ class TargetTypeURIStrategy(object):
 
     def _replace_uid_with_singular_or_custom_mapping(self, previous_part, part):
         """
-        returns the singular of the previous part by removing the trailing 's'
+        returns the singular of the previous part by removing the trailing 's' to replace the uid
         if the singular cannot be derived this way, a mapping is required
 
         example:
@@ -119,7 +129,7 @@ class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
     and the corresponding target_type_uri like: <prefix>/account/container/object
     """
     def __init__(self):
-        super(SwiftTargetTypeURIStrategy, self).__init__(strategy='swift', prefix='service/storage/object')
+        super(SwiftTargetTypeURIStrategy, self).__init__(name='swift', prefix='service/storage/object')
 
     def determine_target_type_uri(self, req):
         """
@@ -164,7 +174,11 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-simple-tenant-usage': 'tenant',
             'os-volume_attachments': 'attachment'
         }
-        super(NovaTargetTypeURIStrategy, self).__init__(strategy='nova', prefix='service/compute', mapping=mapping)
+        super(NovaTargetTypeURIStrategy, self).__init__(
+            name='nova',
+            prefix='service/compute',
+            mapping=mapping
+        )
 
 
 class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
@@ -174,10 +188,11 @@ class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
             'members': 'member',
             'tags': 'tag',
         }
-        super(GlanceTargetTypeURIStrategy, self).__init__(strategy='glance',
-                                                          prefix='service/storage/image',
-                                                          mapping=mapping
-                                                          )
+        super(GlanceTargetTypeURIStrategy, self).__init__(
+            name='glance',
+            prefix='service/storage/image',
+            mapping=mapping
+        )
 
 
 class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
@@ -196,7 +211,46 @@ class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-quota-class-sets': 'class',
             'os-quota-sets': 'quota',
         }
-        super(CinderTargetTypeURIStrategy, self).__init__(strategy='cinder',
-                                                          prefix='service/storage/block',
-                                                          mapping=mapping
-                                                          )
+        super(CinderTargetTypeURIStrategy, self).__init__(
+            name='cinder',
+            prefix='service/storage/block',
+            mapping=mapping
+        )
+
+
+class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        mapping = {
+            'service_profiles': 'profile',
+            'service-provider': 'provider',
+            'metering-labels': 'label',
+            'metering-label-rules': 'rule',
+            'policies': 'policy',
+            'firewall_policies': 'firewall_policy',
+            'rbac-policies': 'rbac-policy',
+            'ikepolicies': 'ikepolicy',
+            'ipsecpolicies': 'ikepolicy',
+            'bandwidth_limit_rules': 'rule',
+            'dscp_marking_rules': 'rule',
+            'network-ip-availabilities': 'availability',
+            'minimum_bandwidth_rules': 'rule',
+            'rule-types': 'type',
+        }
+        super(NeutronTargetTypeURIStrategy, self).__init__(
+            name='nova',
+            prefix='service/network',
+            mapping=mapping
+        )
+
+
+class DesignateTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        mapping = {
+            'floatingips': 'region/floatingip'
+        }
+
+        super(DesignateTargetTypeURIStrategy, self).__init__(
+            name='designate',
+            prefix='service/dns',
+            mapping=mapping
+        )

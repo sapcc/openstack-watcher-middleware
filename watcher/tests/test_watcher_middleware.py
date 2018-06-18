@@ -14,7 +14,6 @@
 
 import six
 import unittest
-import json
 
 from pycadf import cadftaxonomy as taxonomy
 from webob import Request
@@ -25,21 +24,12 @@ from . import fake
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
-def create_request(path, method='GET', body_dict=None):
-    r = Request.blank(path=path)
-    r.method = method
-    if body_dict:
-        r.json_body = json.dumps(body_dict)
-        r.content_type = 'application/json'
-    return r
-
-
 class TestWatcherMiddleware(unittest.TestCase):
     def setUp(self):
         self.app = OpenStackWatcherMiddleware(fake.FakeApp(), {})
 
     def test_nova_get_servers_request(self):
-        req = create_request(path='servers/0123456789abcdef0123456789abcdef/action')
+        req = fake.create_request(path='servers/0123456789abcdef0123456789abcdef/action')
         self.app.service_type = 'compute'
 
         self.assertEqual(
@@ -48,7 +38,7 @@ class TestWatcherMiddleware(unittest.TestCase):
         )
 
     def test_nova_post_action(self):
-        req = create_request(
+        req = fake.create_request(
             path='v2.0/servers/0123456789abcdef0123456789abcdef/action',
             method='POST',
             body_dict={"addFloatingIp": {"address": "10.10.10.10", "fixed_address": "192.168.0.3"}},
@@ -61,7 +51,7 @@ class TestWatcherMiddleware(unittest.TestCase):
         )
 
     def test_designate_get_recordsets(self):
-        req = create_request(
+        req = fake.create_request(
             path='/v2/zones/0123456789abcdef0123456789abcdef/recordsets/0123456789abcdef0123456789abcdef')
         self.app.service_type = 'dns'
 
@@ -71,7 +61,7 @@ class TestWatcherMiddleware(unittest.TestCase):
         )
 
     def test_swift_put_object_request(self):
-        req = create_request(path='/v1/AUTH_account/container/object', method='PUT')
+        req = fake.create_request(path='/v1/AUTH_account/container/object', method='PUT')
         self.app.service_type = 'object-storage'
 
         self.assertEqual(
@@ -80,7 +70,7 @@ class TestWatcherMiddleware(unittest.TestCase):
         )
 
     def test_get_project_id_from_keystone_authentications_request(self):
-        req = create_request(path='auth/tokens', method='POST', body_dict={
+        req = fake.create_request(path='auth/tokens', method='POST', body_dict={
             "auth": {
                 "identity": {
                     "password": {
@@ -180,54 +170,6 @@ class TestWatcherMiddleware(unittest.TestCase):
             taxonomy.UNKNOWN,
             "should be 'unknown' as the service catalog contains no project scoped endpoint url"
         )
-
-    def test_determine_cadf_action(self):
-        config = {
-            'servers': [
-                {'action': [
-                    {'os-getConsoleOutput': 'update/os-getConsoleOutput'}
-                ]}
-            ]
-        }
-
-        stimuli = [
-            {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'request': create_request(
-                    path='v2.0/servers/0123456789abcdef0123456789abcdef/action',
-                    method='POST',
-                    body_dict={"addFloatingIp": {"address": "10.10.10.10", "fixed_address": "192.168.0.3"}},
-                    ),
-                'expected': 'update/addFloatingIp'
-            },
-            {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'request': create_request(
-                    path='v2.0/servers/0123456789abcdef0123456789abcdef/action',
-                    method='POST',
-                    body_dict={"os-getConsoleOutput": {"length": 50}},
-                ),
-                'expected': 'update/os-getConsoleOutput'
-            },
-            {
-                'target_type_uri': 'service/compute/servers/server/action',
-                'request': create_request(
-                    path='v2.0/servers/0123456789abcdef0123456789abcdef',
-                    method='GET',
-                ),
-                'expected': 'read'
-            }
-        ]
-
-        for stim in stimuli:
-            target_type_uri = stim.get('target_type_uri')
-            req = stim.get('request')
-            expected = stim.get('expected')
-            self.assertEqual(
-                self.app.determine_cadf_action(config, target_type_uri, req),
-                expected,
-                "action for {0} should be {1}".format(req, expected)
-            )
 
 
 if __name__ == '__main__':
