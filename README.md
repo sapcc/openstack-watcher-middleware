@@ -113,19 +113,22 @@ custom_actions:
 ```
 This configuration results in the following mapping:
 ```
-|---------------------------------------|-------------------|
-| request                               | action            |
-|---------------------------------------|-------------------|
-| GET  ../v1/account                    | read/list         |
-| POST ../v1/account/container          | update            |
-| POST ../v1/account/container/object   | update            |
-| ...                                   | ...               |
-|---------------------------------------|-------------------|
+|---------------|-----------------------------------|-------------------|
+| HTTP method   | path                              | action            |
+|---------------|-----------------------------------|-------------------|
+| GET           | ../v1/account                     | read/list         |
+| POST          | ../v1/account                     | update            |
+| GET           | ../v1/account/container           | read/list         |
+| POST          | ../v1/account/container           | update            | 
+| POST          | ../v1/account/container/object    | update            |
+| ...           |                                   |                   |
+|---------------|-----------------------------------|-------------------|    
 ````
 
 ## Supported Services
 
-Currently supported are
+This middleware currently provides CADF-compliant support for the following OpenStack services:
+
 - Cinder (Block storage)
 - Designate (DNS)
 - Glance (Image)
@@ -133,7 +136,8 @@ Currently supported are
 - Nova (Compute)
 - Swift (Object store)
 
-Please see the [documentation](./etc) for example configurations.
+Configurations for these services are provided [here](./etc) 
+Support for additional OpenStack services might require additional action configurations.
 
 ## Installation & Usage
 

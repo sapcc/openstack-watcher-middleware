@@ -126,6 +126,18 @@ class TestDesignate(unittest.TestCase):
                     path='/v2.0/qos/policies/b206a1900310484f8a9504754c84b067/dscp_marking_rules/b206a1900310484f8a9504754c84b067'
                 ),
                 'expected': 'service/network/qos/policies/policy/dscp_marking_rules/rule'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0/someresourcetype/b206a1900310484f8a9504754c84b067/tags'
+                ),
+                'expected': 'service/network/resource_type/resource/tags'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0/someresourcetype/b206a1900310484f8a9504754c84b067/tags/tagname'
+                ),
+                'expected': 'service/network/resource_type/resource/tags/tag'
             }
         ]
 

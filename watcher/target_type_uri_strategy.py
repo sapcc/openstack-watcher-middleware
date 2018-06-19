@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
 from pycadf import cadftaxonomy as taxonomy
 
 from . import common
@@ -29,7 +31,7 @@ class TargetTypeURIStrategy(object):
         body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
         => <prefix>/servers/server/addFloatingIp
     """
-    def __init__(self, name='generic', prefix=None, mapping={}, logger=None):
+    def __init__(self, name='generic', prefix=None, mapping={}, regex_mapping={}, logger=None):
         """
         a strategy to determine the target.type_uri
 
@@ -38,31 +40,43 @@ class TargetTypeURIStrategy(object):
         :param mapping: the mapping of {plural: singular}
                only required if the singular != plural.rstrip(s)
                example: {'service_profiles': 'profile'}
+        :param regex_mapping: mapping of { regex : target_type_uri }
         :param logger: the logger
         """
         self.name = name
         self.prefix = prefix
         self.mapping = mapping
+        self.regex_target_type_uri_map = regex_mapping
         self.logger = logger
 
     def determine_target_type_uri(self, req):
         """
-        :param req: the request
-        :return: the target.type_uri
-        """
+        determines the target.type_uri of a request by its path
 
+        :param req: the request
+        :return: the target.type_uri or 'unknown'
+        """
+        target_type_uri = self._determine_target_type_uri_by_regex(req)
+        if not target_type_uri:
+            target_type_uri = self._determine_target_type_uri_by_parts(req)
+        return target_type_uri or taxonomy.UNKNOWN
+
+    def _determine_target_type_uri_by_parts(self, req):
         target_type_uri = []
         try:
             path_parts = req.path.lstrip('/').split('/')
 
             for index, part in enumerate(path_parts):
+                # append part or, if it's a uid, append the replacement
+                # using replace_uid_with_singular_or_custom_mapping()
+                # servers/<uid>/ => servers/server, policies/<uid> => policies/policy
                 previous_index = index - 1
                 if previous_index >= 0:
                     p = self._replace_uid_with_singular_or_custom_mapping(path_parts[previous_index], part)
                     if p:
                         target_type_uri.append(p)
                         continue
-                # ensure no versions or uids are added to the target_type_uri
+                # ensure no versions or uids are added to the target_type_uri even if the path starts with one
                 if common.is_version_string(part) or common.is_uid_string(part):
                     continue
                 if len(part) > 1:
@@ -72,11 +86,29 @@ class TargetTypeURIStrategy(object):
             self.logger.warning("failed to get target_type_uri from request path: %s" % str(e))
             target_type_uri = []
         finally:
-            # we just have the service
+            # we need at least one part
             if len(target_type_uri) < 1:
-                return taxonomy.UNKNOWN
+                return None
+            # finally build the string from the parts and add the prefix service/<service_type>
             uri = '/'.join(target_type_uri).lstrip('/')
             return self.add_prefix_target_type_uri(uri)
+
+    def _determine_target_type_uri_by_regex(self, req):
+        """
+        some path' can only be handled via regex.
+        for instance: neutron tag extension: '/v2.0/{resource_type}/{resource_id}/tags'
+
+        :param req: the request
+        :return: the target_type_uri
+        """
+        path = req.path.rstrip('/')
+        for regex in self.regex_target_type_uri_map.keys():
+            match = regex.match(path)
+            if match:
+                return self.add_prefix_target_type_uri(
+                    self.regex_target_type_uri_map.get(regex)
+                )
+        return None
 
     def add_prefix_target_type_uri(self, target_type_uri):
         """
@@ -220,7 +252,7 @@ class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
 
 class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
     def __init__(self):
-        mapping = {
+        plural_mapping = {
             'service_profiles': 'profile',
             'service-provider': 'provider',
             'metering-labels': 'label',
@@ -236,10 +268,17 @@ class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
             'minimum_bandwidth_rules': 'rule',
             'rule-types': 'type',
         }
+        regex_mapping = {
+            re.compile('\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$'):
+                'resource_type/resource/tags',
+            re.compile('\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)'):
+                'resource_type/resource/tags/tag'
+        }
         super(NeutronTargetTypeURIStrategy, self).__init__(
             name='nova',
             prefix='service/network',
-            mapping=mapping
+            mapping=plural_mapping,
+            regex_mapping=regex_mapping,
         )
 
 
