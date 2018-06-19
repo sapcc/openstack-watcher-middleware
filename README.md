@@ -123,7 +123,17 @@ This configuration results in the following mapping:
 |---------------------------------------|-------------------|
 ````
 
-Find more examples [here](./etc).
+## Supported Services
+
+Currently supported are
+- Cinder (Block storage)
+- Designate (DNS)
+- Glance (Image)
+- Neutron (Network)
+- Nova (Compute)
+- Swift (Object store)
+
+Please see the [documentation](./etc) for example configurations.
 
 ## Installation & Usage
 
