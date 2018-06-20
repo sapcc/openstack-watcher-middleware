@@ -129,12 +129,16 @@ This configuration results in the following mapping:
 
 This middleware currently provides CADF-compliant support for the following OpenStack services:
 
-- Cinder (Block storage)
-- Designate (DNS)
-- Glance (Image)
-- Neutron (Network)
-- Nova (Compute)
-- Swift (Object store)
+|-----------------------|-----------------------|
+| Service name          | Service type          |
+|-----------------------|-----------------------|
+| Cinder                | volume                |
+| Glance                | image                 | 
+| Neutron               | network               |
+| Nova                  | compute               |
+| Swift                 | object-store          |
+| Designate             | dns                   |
+|-----------------------|-----------------------|
 
 Configurations for these services are provided [here](./etc) 
 Support for additional OpenStack services might require additional action configurations.
@@ -172,7 +176,7 @@ and configure by adding the following snippet to the paste.ini:
 ```yaml
 [filter:watcher]
 use = egg:watcher-middleware#watcher
-# service_type as defined in service catalog
+# service_type as defined in service catalog. See supported services.
 # example: object-store, compute, dns, etc.
 service_type = <service_type>
 ```

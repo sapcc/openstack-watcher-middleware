@@ -52,7 +52,6 @@ class OpenStackWatcherMiddleware(object):
 
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
-        self.custom_action_config = self.watcher_config.get('custom_actions', {})
         # get the project uid from the request path or from the token (default)
         self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('project_id_from_path', 'False'))
         self.is_project_id_from_service_catalog = common.string_to_bool(
@@ -65,6 +64,8 @@ class OpenStackWatcherMiddleware(object):
                 self.watcher_config = load_config(config_file_path)
             except errors.ConfigError as e:
                 self.logger.warning("Custom actions not available: %s", str(e))
+
+        self.custom_action_config = self.watcher_config.get('custom_actions', {})
 
         self.metric_client = DogStatsd(
             host=self.wsgi_config.get("statsd_host", "127.0.0.1"),
@@ -130,16 +131,13 @@ class OpenStackWatcherMiddleware(object):
         ]
 
         # if swift request: determine target.container_id based on request path
-        if common.is_swift_request(req.path):
+        if common.is_swift_request(req.path) or self.service_type == 'object-store':
             _, target_container_id = self.get_target_account_container_id_from_request(req)
             environ['WATCHER.TARGET_CONTAINER_ID'] = target_container_id
-            labels.append(
-                "target_container_id:{0}".format(target_container_id)
-            )
 
         self.logger.debug(
             'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
-            'target_project_id: {3}, action: {6}, target_type_uri: {7}'
+            'target_project_id: {3}, action: {4}, target_type_uri: {5}'
             .format(initiator_project_id, initiator_domain_id, initiator_user_id,
                     target_project_id, cadf_action, target_type_uri
                     )

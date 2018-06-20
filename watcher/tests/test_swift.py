@@ -9,7 +9,7 @@ from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-SWIFT_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/swift.yaml'
+SWIFT_CONFIG_PATH = WORKDIR + '/fixtures/swift.yaml'
 
 
 class TestDesignate(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestDesignate(unittest.TestCase):
         )
 
     def test_cadf_action(self):
-        raw_config = load_config(SWIFT_COMPLEX_CONFIG_PATH)
+        raw_config = load_config(SWIFT_CONFIG_PATH)
         config = raw_config.get('custom_actions', None)
         self.assertIsNotNone(config, "the swift config should not be None")
 

@@ -1,6 +1,19 @@
 CHANGES
 =======
 
+* regex for neutron tags path
+* update supported services
+* complete designate mapping and add tests
+* add designate, neutron mapping
+* add cinder mapping, sign. simplify action mapping
+* glance strategy, mapping, tests
+* fix typo
+* finished nova mapping
+* more nova mapping and tests
+* add nova mapping
+* s/action/action\_type/ to avoid confusion
+* rm target.account\_id, target.container\_id only if swift request, update documentation
+* fix method name
 * update readme
 * watcher middleware
 * initial commit
