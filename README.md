@@ -21,7 +21,7 @@ Requests are classified according to the CADF specification.
 A comprehensive list of of OpenStack requests and their CADF representation can be found here: [Cloud Audit Data Federation - OpenStack Profile (CADF-OpenStack)](https://www.dmtf.org/sites/default/files/standards/documents/DSP2038_1.1.0.pdf).  
 This middleware follows DMTF specification DSP2038, version 1.1.0 as of 27 April 2015.
 
-### Classification
+#### Classification
 
 The watcher classifies requests and records the following attributes.
 These are emitted as Prometheus metrics and passed in the GCI environment with the `WATCHER` prefix and in capital letters.
@@ -67,7 +67,7 @@ that include the project id in the format `http(s)://<service>:<port>/<version>/
 This requires `include_service_catalog = true` in the keystone.auth_token middleware and does not work when unauthenticated requests are allowed.
 See section [keystone auth_token middleware](#keystone-auth_token-middleware). 
  
-### CADF actions
+#### CADF actions
 
 Actions characterize the operation performed by the initiator of a request against a target. 
 A comprehensive definition of these actions is provided by the CADF specification mentioned above.
@@ -125,10 +125,39 @@ This configuration results in the following mapping:
 |---------------|-----------------------------------|-------------------|    
 ````
 
+#### Action requests
+
+Some requests may use `POST` or `PUT` with a path including `/action` or `/os-instance-actions` and a json body to perform an action on a resource.
+In which case the middleware evaluates the request body to determine the action.
+The default mapping will return a CADF action in the following format: `update/<action>`.
+A `os-` prefix will be trimmed from the action.  
+
+Example: Nova (compute) add security group to an instance and reset state
+````
+|---------------|-----------------------------------|-------------------------------------------|---------------------------|
+| HTTP method   | path                              | JSON body                                 | CADF action               |
+|---------------|-----------------------------------|-------------------------------------------|---------------------------|
+| POST          | /servers/{server_id}/action       | { "addSecurityGroup": { "name": "test" }} | update/addSecurityGroup   |
+| POST          | /servers/{server_id}/action       | { "os-resetState": { "state": "active" }} | update/resetState         |
+| ...           | ...                               |                                           |                           |
+|---------------|-----------------------------------|-------------------------------------------|---------------------------|
+````
+  
+The default behaviour can be overwritten by providing the following configuration:
+```
+custom_actions:
+  servers:
+    server:
+      action:
+        - <original_action>: <cadf_action>
+        - addSecurityGroup: update/addSecurityGroup
+        - os-resetState: update/os-resetState
+```
+
 ## Supported Services
 
 This middleware currently provides CADF-compliant support for the following OpenStack services:
-
+````
 |-----------------------|-----------------------|
 | Service name          | Service type          |
 |-----------------------|-----------------------|
@@ -139,7 +168,7 @@ This middleware currently provides CADF-compliant support for the following Open
 | Swift                 | object-store          |
 | Designate             | dns                   |
 |-----------------------|-----------------------|
-
+````
 Configurations for these services are provided [here](./etc) 
 Support for additional OpenStack services might require additional action configurations.
 
