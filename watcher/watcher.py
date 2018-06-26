@@ -17,7 +17,7 @@ import yaml
 
 from datadog.dogstatsd import DogStatsd
 from oslo_log import log
-from oslo_config import cfg
+# from oslo_config import cfg
 from pycadf import cadftaxonomy as taxonomy
 from webob import Request
 
@@ -44,8 +44,8 @@ class OpenStackWatcherMiddleware(object):
     Watches OpenStack traffic and classifies according to CADF standard
     """
     def __init__(self, app, config, logger=log.getLogger(__name__)):
-        log.register_options(cfg.CONF)
-        log.setup(cfg.CONF, 'openstack_watcher_middleware')
+        # log.register_options(cfg.CONF)
+        # log.setup(cfg.CONF, 'openstack_watcher_middleware')
         self.logger = logger
         self.app = app
         self.wsgi_config = config
