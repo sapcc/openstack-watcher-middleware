@@ -32,7 +32,8 @@ STRATEGIES = {
     'image': ttu.GlanceTargetTypeURIStrategy,
     'volume': ttu.CinderTargetTypeURIStrategy,
     'network': ttu.NeutronTargetTypeURIStrategy,
-    'dns': ttu.DesignateTargetTypeURIStrategy
+    'dns': ttu.DesignateTargetTypeURIStrategy,
+    'identity': ttu.KeystoneTargetTypeURIStrategy,
 }
 
 

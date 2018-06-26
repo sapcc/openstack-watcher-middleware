@@ -103,10 +103,6 @@ custom_actions:
         - method: GET
           action_type: read/list
 
-      - action:
-        - addTenantAccess: update/addTenantAccess
-        - removeTenantAccess: update/removeTenantAccess
-
   images:
     - method: GET
       action_type: read/list
@@ -202,13 +198,6 @@ custom_actions:
     - method: GET
       action_type: read/list
 
-    - network:
-      - action:
-        - associate_host: update/associate_host
-        - disassociate_host: update/disassociate_host
-        - disassociate: update/disassociate
-        - disassociate_project: udpate/disassociate_project
-
   os-quota-sets:
     - method: GET
       action_type: read/list
@@ -223,7 +212,7 @@ custom_actions:
 
     - disable:
       - method: PUT
-        action_type: enable
+        action_type: disable
 
   os-security-groups:
     - method: GET

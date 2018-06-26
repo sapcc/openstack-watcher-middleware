@@ -167,6 +167,7 @@ This middleware currently provides CADF-compliant support for the following Open
 | Nova                  | compute               |
 | Swift                 | object-store          |
 | Designate             | dns                   |
+| Keystone              | identity              |
 |-----------------------|-----------------------|
 ````
 Configurations for these services are provided [here](./etc) 

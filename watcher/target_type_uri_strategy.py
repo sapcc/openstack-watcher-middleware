@@ -13,6 +13,7 @@
 # under the License.
 
 import re
+import six
 
 from pycadf import cadftaxonomy as taxonomy
 
@@ -45,9 +46,13 @@ class TargetTypeURIStrategy(object):
         """
         self.name = name
         self.prefix = prefix
-        self.mapping = mapping
-        self.regex_target_type_uri_map = regex_mapping
         self.logger = logger
+        self.mapping = mapping
+        self.regex_target_type_uri_map = {}
+
+        if regex_mapping:
+            for regex, ttu in six.iteritems(regex_mapping):
+                self.regex_target_type_uri_map[re.compile(regex)] = ttu
 
     def determine_target_type_uri(self, req):
         """
@@ -149,6 +154,8 @@ class TargetTypeURIStrategy(object):
         if common.is_version_string(previous_part):
             return None
         if common.is_uid_string(part):
+            if previous_part.endswith('ies'):
+                return previous_part.rstrip('ies') + 'y'
             return previous_part.rstrip('s')
         return None
 
@@ -195,7 +202,6 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
             # ../os-floating-ip/<uid>/.. => ../os-floating-ip/floating-ip/..
             'os-floating-ips': 'floating-ip',
             'os-extra_specs': 'key',
-            'entries': 'entry',
             'os-hosts': 'host',
             'os-hypervisors': 'hypervisor',
             'os-instance-actions': 'instance-action',
@@ -204,7 +210,8 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-security-group-rules': 'rule',
             'os-security-groups': 'security-group',
             'os-simple-tenant-usage': 'tenant',
-            'os-volume_attachments': 'attachment'
+            'os-volume_attachments': 'attachment',
+            'entries': 'entry'
         }
         super(NovaTargetTypeURIStrategy, self).__init__(
             name='nova',
@@ -257,22 +264,15 @@ class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
             'service-provider': 'provider',
             'metering-labels': 'label',
             'metering-label-rules': 'rule',
-            'policies': 'policy',
-            'firewall_policies': 'firewall_policy',
-            'rbac-policies': 'rbac-policy',
-            'ikepolicies': 'ikepolicy',
-            'ipsecpolicies': 'ikepolicy',
+            'network-ip-availabilities': 'availability',
             'bandwidth_limit_rules': 'rule',
             'dscp_marking_rules': 'rule',
-            'network-ip-availabilities': 'availability',
             'minimum_bandwidth_rules': 'rule',
             'rule-types': 'type',
         }
         regex_mapping = {
-            re.compile('\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$'):
-                'resource_type/resource/tags',
-            re.compile('\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)'):
-                'resource_type/resource/tags/tag'
+            '\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$': 'resource_type/resource/tags',
+            '\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)': 'resource_type/resource/tags/tag'
         }
         super(NeutronTargetTypeURIStrategy, self).__init__(
             name='nova',
@@ -292,4 +292,20 @@ class DesignateTargetTypeURIStrategy(TargetTypeURIStrategy):
             name='designate',
             prefix='service/dns',
             mapping=mapping
+        )
+
+
+class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        regex_mapping = {
+            '\S+/domains/config/[0-9a-zA-Z_]+/default$': 'domains/config/group/default',
+            '\S+/domains/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+/default$': 'domains/config/group/option/default',
+            '\S+/domains/\S+/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+$': 'domains/domain/config/group/option',
+            '\S+/domains/\S+/config/[0-9a-zA-Z_]+$': 'domains/domain/config/group',
+        }
+        super(KeystoneTargetTypeURIStrategy, self).__init__(
+            name='keystone',
+            prefix='service/identity',
+            mapping={},
+            regex_mapping=regex_mapping
         )
