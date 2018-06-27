@@ -12,12 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import json
 import yaml
 
 from datadog.dogstatsd import DogStatsd
-from oslo_config import cfg
-from oslo_log import log as logging
 from pycadf import cadftaxonomy as taxonomy
 from webob import Request
 
@@ -25,9 +24,7 @@ from . import common
 from . import errors
 from . import target_type_uri_strategy as ttu
 
-
-CONF = cfg.CONF
-logging.setup(CONF, 'watcher_middleware')
+logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
 STRATEGIES = {
     'object-store': ttu.SwiftTargetTypeURIStrategy,
