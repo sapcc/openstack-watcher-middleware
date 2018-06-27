@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* default target.project\_id to initiator.project\_id if discovery fails
 * add missing glance mapping
 * add keystone and tests
 * update docs

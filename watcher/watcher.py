@@ -16,8 +16,8 @@ import json
 import yaml
 
 from datadog.dogstatsd import DogStatsd
-from oslo_log import log
-# from oslo_config import cfg
+from oslo_config import cfg
+from oslo_log import log as logging
 from pycadf import cadftaxonomy as taxonomy
 from webob import Request
 
@@ -25,6 +25,9 @@ from . import common
 from . import errors
 from . import target_type_uri_strategy as ttu
 
+
+CONF = cfg.CONF
+logging.setup(CONF, 'watcher_middleware')
 
 STRATEGIES = {
     'object-store': ttu.SwiftTargetTypeURIStrategy,
@@ -43,9 +46,7 @@ class OpenStackWatcherMiddleware(object):
 
     Watches OpenStack traffic and classifies according to CADF standard
     """
-    def __init__(self, app, config, logger=log.getLogger(__name__)):
-        # log.register_options(cfg.CONF)
-        # log.setup(cfg.CONF, 'openstack_watcher_middleware')
+    def __init__(self, app, config, logger=logging.getLogger(__name__)):
         self.logger = logger
         self.app = app
         self.wsgi_config = config
@@ -228,6 +229,7 @@ class OpenStackWatcherMiddleware(object):
 
         except Exception as e:
             self.logger.debug('unable to get target.project_id from service catalog: ', str(e))
+
         finally:
             if project_id == taxonomy.UNKNOWN:
                 self.logger.debug(
@@ -339,26 +341,32 @@ class OpenStackWatcherMiddleware(object):
         """
         # determine action as per custom action configuration
         cadf_action = taxonomy.UNKNOWN
+        os_action = None
         try:
-            os_action = common.determine_openstack_action_from_request(req)
+            if common.is_action_request(req):
+                os_action = common.determine_openstack_action_from_request(req)
+
             # search custom action configuration
-            if custom_action_config:
-                cadf_action = common.determine_custom_cadf_action(
-                    config=custom_action_config,
-                    target_type_uri=target_type_uri,
-                    method=req.method,
-                    os_action=os_action,
-                    prefix=self.prefix
-                )
-                self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
-            # if action request and cadf action still unknown, attempt to convert
-            if common.is_action_request(req) and cadf_action == taxonomy.UNKNOWN:
+            cadf_action = common.determine_custom_cadf_action(
+                config=custom_action_config,
+                target_type_uri=target_type_uri,
+                method=req.method,
+                os_action=os_action,
+                prefix=self.prefix
+            )
+            self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
+
+            # if action request and cadf action still unknown, attempt to convert from os-action
+            if os_action and cadf_action == taxonomy.UNKNOWN:
                 cadf_action = common.openstack_action_to_cadf_action(os_action)
-            # determine cadf action based on HTTP method (and path for authentication req)
+
+            # if still unknown, determine cadf action based on HTTP method (and path for authentication req)
             if cadf_action == taxonomy.UNKNOWN:
                 cadf_action = common.determine_cadf_action_from_request(req)
+
         except Exception as e:
             self.logger.warning('unable to determine cadf action: {}'.format(str(e)))
+
         finally:
             return cadf_action
 
