@@ -1,6 +1,7 @@
 CHANGES
 =======
 
+* add missing glance mapping
 * add keystone and tests
 * update docs
 * fix swift test

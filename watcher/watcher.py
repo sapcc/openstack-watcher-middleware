@@ -54,9 +54,9 @@ class OpenStackWatcherMiddleware(object):
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
         # get the project uid from the request path or from the token (default)
-        self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('project_id_from_path', 'False'))
+        self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('target_project_id_from_path', 'False'))
         self.is_project_id_from_service_catalog = common.string_to_bool(
-            self.wsgi_config.get('project_id_from_service_catalog', 'False'))
+            self.wsgi_config.get('target_project_id_from_service_catalog', 'False'))
         self.prefix = self.cadf_service_name or 'service/{0}'.format(self.service_type)
 
         config_file_path = config.get('config_file', None)
@@ -64,7 +64,7 @@ class OpenStackWatcherMiddleware(object):
             try:
                 self.watcher_config = load_config(config_file_path)
             except errors.ConfigError as e:
-                self.logger.warning("Custom actions not available: %s", str(e))
+                self.logger.warning("custom actions not available: %s", str(e))
 
         self.custom_action_config = self.watcher_config.get('custom_actions', {})
 
@@ -103,6 +103,10 @@ class OpenStackWatcherMiddleware(object):
             target_project_id = self.get_target_project_uid_from_path(req.path)
         elif self.is_project_id_from_service_catalog:
             target_project_id = self.get_target_project_id_from_keystone_token_info(environ.get('keystone.token_info'))
+
+        # default target_project_id to initiator_project_id if still unknown
+        if not target_project_id or target_project_id == taxonomy.UNKNOWN:
+            target_project_id = initiator_project_id
 
         # determine target.type_uri for request
         target_type_uri = self.determine_target_type_uri(req)
@@ -189,7 +193,10 @@ class OpenStackWatcherMiddleware(object):
             else:
                 project_uid = common.get_project_id_from_os_path()
         finally:
-            self.logger.debug("request path '{0}' contains target.project_id '{1}'".format(path, project_uid))
+            if project_uid == taxonomy.UNKNOWN:
+                self.logger.debug("unable to obtain target.project_id from request path '{0}'".format(path))
+            else:
+                self.logger.debug("request path '{0}' contains target.project_id '{1}'".format(path, project_uid))
             return project_uid
 
     def get_target_project_id_from_keystone_token_info(self, token_info):
@@ -220,8 +227,16 @@ class OpenStackWatcherMiddleware(object):
                     break
 
         except Exception as e:
-            self.logger.debug('unable to get project id from service catalog: ', str(e))
+            self.logger.debug('unable to get target.project_id from service catalog: ', str(e))
         finally:
+            if project_id == taxonomy.UNKNOWN:
+                self.logger.debug(
+                    "unable to get target.project_id for service type '{1}' from service catalog"
+                    .format(project_id, self.service_type))
+            else:
+                self.logger.debug(
+                    "got target.project_id '{0}' for service type '{1}' from service catalog"
+                    .format(project_id, self.service_type))
             return project_id
 
     def _get_project_id_from_service_endpoints(self, endpoint_list, endpoint_type=None):
