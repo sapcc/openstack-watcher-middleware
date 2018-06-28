@@ -129,6 +129,10 @@ class TestDesignate(unittest.TestCase):
             {
                 'request': Request.blank(path='/v1'),
                 'expected': 'unknown'
+            },
+            {
+                'request': Request.blank('/info'),
+                'expected': 'service/storage/object/info'
             }
         ]
 

@@ -177,13 +177,19 @@ class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
         """
         target_type_uri = []
         try:
-            account_id, container_id, object_id = common.get_swift_account_container_object_id_from_path(req.path)
+            path = req.path
+            if path.endswith('/info'):
+                target_type_uri.append('info')
+                return
+
+            account_id, container_id, object_id = common.get_swift_account_container_object_id_from_path(path)
             if account_id and account_id != taxonomy.UNKNOWN:
                 target_type_uri.append('account')
             if container_id and container_id != taxonomy.UNKNOWN:
                 target_type_uri.append('container')
             if object_id and object_id != taxonomy.UNKNOWN:
                 target_type_uri.append('object')
+
         finally:
             if len(target_type_uri) < 1:
                 return taxonomy.UNKNOWN
