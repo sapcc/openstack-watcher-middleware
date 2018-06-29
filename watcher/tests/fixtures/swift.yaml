@@ -14,3 +14,7 @@ custom_actions:
         - object:
             - method: POST
               action_type: 'update'
+
+  endpoints:
+    - method: GET
+      action_type: 'read/list'

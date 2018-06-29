@@ -181,6 +181,9 @@ class SwiftTargetTypeURIStrategy(TargetTypeURIStrategy):
             if path.endswith('/info'):
                 target_type_uri.append('info')
                 return
+            if path.endswith('/endpoints'):
+                target_type_uri.append('endpoints')
+                return
 
             account_id, container_id, object_id = common.get_swift_account_container_object_id_from_path(path)
             if account_id and account_id != taxonomy.UNKNOWN:

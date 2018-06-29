@@ -90,6 +90,10 @@ class TestDesignate(unittest.TestCase):
                 'expected': 'read'
             },
             {
+                'request': fake.create_request(path="/v1/endpoints"),
+                'expected': 'read/list'
+            },
+            {
                 'request': fake.create_request(
                     path='/v1/AUTH_0123456789',
                     method='POST'
@@ -129,6 +133,10 @@ class TestDesignate(unittest.TestCase):
             {
                 'request': Request.blank(path='/v1'),
                 'expected': 'unknown'
+            },
+            {
+                'request': Request.blank('/v1/endpoints'),
+                'expected': 'service/storage/object/endpoints'
             },
             {
                 'request': Request.blank('/info'),

@@ -124,6 +124,12 @@ class MyTestCase(unittest.TestCase):
                         }
                     ]
                 }
+            ],
+            'endpoints': [
+                {
+                    'method': 'GET',
+                    'action_type': 'read/list'
+                }
             ]
         }
 
