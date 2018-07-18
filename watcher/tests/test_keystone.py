@@ -2,10 +2,13 @@ import os
 import unittest
 
 from webob import Request
+from pycadf import cadftaxonomy as taxonomy
 
 from . import fake
+import watcher.common as common
 from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
+
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
@@ -219,6 +222,126 @@ class TestKeystone(unittest.TestCase):
                 "target_type_uri of '{0}' should be '{1}'".format(req, expected)
             )
 
+    def test_get_target_project_domain_and_user_id_from_keystone_authentication_request(self):
+        stimuli = [
+            {
+                'body':
+                    {
+                        "auth": {
+                            "identity": {
+                                "password": {
+                                    "user": {
+                                        "id": "71a7dcb0d60a43088a6c8e9b69a39e69",
+                                        "password": "devstack"
+                                    }
+                                },
+                                "methods": ["password"]
+                            },
+                            "scope": {
+                                "project": {
+                                    "id": "194dfdddb6bc43e09701035b52edb0d9"
+                                }
+                            },
+                            "type": "CREDENTIALS"
+                        }
+                    },
+                'expected': ('194dfdddb6bc43e09701035b52edb0d9', taxonomy.UNKNOWN, '71a7dcb0d60a43088a6c8e9b69a39e69')
+            },
+            {
+                'body':
+                    {
+                        "auth": {
+                            "identity": {
+                                "methods": [
+                                    "password"
+                                ],
+                                "password": {
+                                    "user": {
+                                        "name": "admin",
+                                        "domain": {
+                                            "name": "Default"
+                                        },
+                                        "password": "devstacker"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                'expected': (taxonomy.UNKNOWN, taxonomy.UNKNOWN, taxonomy.UNKNOWN)
+            },
+            {
+                'body':
+                    {
+                        "auth": {
+                            "identity": {
+                                "methods": [
+                                    "token"
+                                ],
+                                "token": {
+                                    "id": "'$OS_TOKEN'"
+                                }
+                            },
+                            "scope": {
+                                "domain": {
+                                    "id": "default"
+                                }
+                            }
+                        }
+                    },
+                'expected': (taxonomy.UNKNOWN, 'default', taxonomy.UNKNOWN)
+            },
+            {
+                'body':
+                    {
+                        "auth": {
+                            "identity": {
+                                "methods": [
+                                    "token"
+                                ],
+                                "token": {
+                                    "id": "'$OS_TOKEN'"
+                                }
+                            },
+                            "scope": {
+                                "project": {
+                                    "id": "a6944d763bf64ee6a275f1263fae0352"
+                                }
+                            }
+                        }
+                    },
+                'expected': ('a6944d763bf64ee6a275f1263fae0352', taxonomy.UNKNOWN, taxonomy.UNKNOWN)
+            },
+            {
+                'body':
+                    {
+                        "auth": {
+                            "identity": {
+                                "methods": [
+                                    "token"
+                                ],
+                                "token": {
+                                    "id": "'$OS_TOKEN'"
+                                }
+                            },
+                            "scope": "unscoped"
+                        }
+                    },
+                'expected': (taxonomy.UNKNOWN, taxonomy.UNKNOWN, taxonomy.UNKNOWN)
+            }
+        ]
+
+        for s in stimuli:
+            req = fake.create_request(path='auth/tokens', method='POST', body_dict=s.get('body'))
+
+            self.assertEqual(
+                common.determine_cadf_action_from_request(req),
+                taxonomy.ACTION_AUTHENTICATE,
+            )
+
+            self.assertEqual(
+                self.watcher.get_project_domain_and_user_id_from_keystone_authentication_request(req),
+                s.get('expected'),
+            )
 
 if __name__ == '__main__':
     unittest.main()

@@ -69,38 +69,6 @@ class TestWatcherMiddleware(unittest.TestCase):
             taxonomy.ACTION_UPDATE,
         )
 
-    def test_get_project_id_from_keystone_authentications_request(self):
-        req = fake.create_request(path='auth/tokens', method='POST', body_dict={
-            "auth": {
-                "identity": {
-                    "password": {
-                        "user": {
-                            "id": "71a7dcb0d60a43088a6c8e9b69a39e69",
-                            "password": "devstack"
-                        }
-                    },
-                    "methods": ["password"]
-                },
-                "scope": {
-                    "project": {
-                        "id": "194dfdddb6bc43e09701035b52edb0d9"
-                    }
-                },
-                "type": "CREDENTIALS"
-            }
-        })
-        self.app.service_type = 'identity'
-
-        self.assertEqual(
-            common.determine_cadf_action_from_request(req),
-            taxonomy.ACTION_AUTHENTICATE,
-        )
-
-        self.assertEqual(
-            self.app.get_target_project_domain_and_user_id_from_keystone_authentications_request(req),
-            ('194dfdddb6bc43e09701035b52edb0d9', taxonomy.UNKNOWN, '71a7dcb0d60a43088a6c8e9b69a39e69'),
-        )
-
     def test_get_account_uid_and_container_name_from_request(self):
         stimuli = {
             '/v1/AUTH_0123456789/containername/testfile': ('0123456789', 'containername'),

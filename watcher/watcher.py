@@ -92,7 +92,7 @@ class OpenStackWatcherMiddleware(object):
 
         # determine initiator based on token
         initiator_project_id, initiator_domain_id, initiator_user_id = \
-            self.get_initiator_project_domain_user_uid_from_environ(req, environ)
+            self.get_initiator_project_domain_user_uid_from_environ(environ)
         initiator_host_address = req.client_addr or taxonomy.UNKNOWN
 
         # determine target based on request path or keystone.token_info
@@ -112,13 +112,18 @@ class OpenStackWatcherMiddleware(object):
         # determine cadf_action for request. consider custom action config.
         cadf_action = self.determine_cadf_action(self.custom_action_config, target_type_uri, req)
 
-        # initiator
+        # if authentication request consider project, domain and user in body
+        if self.service_type == 'identity' and cadf_action == taxonomy.ACTION_AUTHENTICATE:
+            initiator_project_id, initiator_domain_id, initiator_user_id = \
+                self.get_project_domain_and_user_id_from_keystone_authentication_request(req)
+
+        # set environ for initiator
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
         environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
         environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
         environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address
 
-        # target
+        # set environ for target
         environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
         environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
         environ['WATCHER.ACTION'] = cadf_action
@@ -140,10 +145,10 @@ class OpenStackWatcherMiddleware(object):
 
         self.logger.debug(
             'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
-            'target_project_id: {3}, action: {4}, target_type_uri: {5}'
-            .format(initiator_project_id, initiator_domain_id, initiator_user_id,
-                    target_project_id, cadf_action, target_type_uri
-                    )
+            'target_project_id: {3}, action: {4}, target_type_uri: {5}'.format(
+                initiator_project_id, initiator_domain_id, initiator_user_id, target_project_id,
+                cadf_action, target_type_uri
+            )
         )
 
         try:
@@ -161,7 +166,7 @@ class OpenStackWatcherMiddleware(object):
             self.metric_client.close_buffer()
             return self.app(environ, start_response)
 
-    def get_initiator_project_domain_user_uid_from_environ(self, req, environ):
+    def get_initiator_project_domain_user_uid_from_environ(self, environ):
         """
         get the project uid, domain uid, user uid from the environ
         as parsed by the keystone.auth_token middleware
@@ -169,12 +174,13 @@ class OpenStackWatcherMiddleware(object):
         :param environ: the request's environ
         :return: project, domain, user uid
         """
-        project_id = environ.get('HTTP_X_PROJECT_ID', taxonomy.UNKNOWN)
-        domain_id = environ.get('HTTP_X_DOMAIN_ID', taxonomy.UNKNOWN)
-        user_id = environ.get('HTTP_X_USER_ID', taxonomy.UNKNOWN)
-        if not (project_id or domain_id):
-            project_id, domain_id, user_id = self.get_project_domain_and_user_id_from_keystone_authentications_request(req)
-        return project_id, domain_id, user_id
+        try:
+            project_id = domain_id = user_id = taxonomy.UNKNOWN
+            project_id = environ.get('HTTP_X_PROJECT_ID')
+            domain_id = environ.get('HTTP_X_DOMAIN_ID')
+            user_id = environ.get('HTTP_X_USER_ID')
+        finally:
+            return project_id, domain_id, user_id
 
     def get_target_project_uid_from_path(self, path):
         """
@@ -272,7 +278,7 @@ class OpenStackWatcherMiddleware(object):
                 self.logger.debug("found target project id '{0}' in endpoints for service type '{1}'".format(project_id, self.service_type))
             return project_id
 
-    def get_target_project_domain_and_user_id_from_keystone_authentications_request(self, req):
+    def get_project_domain_and_user_id_from_keystone_authentication_request(self, req):
         """
         get project, domain, user id from authentication request.
         used in combination with client_addr to determine which client authenticates in which scope
@@ -282,9 +288,12 @@ class OpenStackWatcherMiddleware(object):
         """
         project_id = domain_id = user_id = taxonomy.UNKNOWN
         try:
+            if not req.json_body:
+                return
+
             json_body_dict = json.loads(req.json_body)
             if not json_body_dict:
-                return taxonomy.UNKNOWN
+                return
             project_id = common.find_project_id_in_auth_dict(json_body_dict)
             domain_id = common.find_domain_id_in_auth_dict(json_body_dict)
             user_id = common.find_user_id_in_auth_dict(json_body_dict)
