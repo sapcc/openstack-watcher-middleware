@@ -93,7 +93,7 @@ class OpenStackWatcherMiddleware(object):
         # determine initiator based on token
         initiator_project_id, initiator_domain_id, initiator_user_id = \
             self.get_initiator_project_domain_user_uid_from_environ(req, environ)
-        initiator_client_addr = req.client_addr or taxonomy.UNKNOWN
+        initiator_host_address = req.client_addr or taxonomy.UNKNOWN
 
         # determine target based on request path or keystone.token_info
         target_project_id = taxonomy.UNKNOWN
@@ -116,7 +116,7 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
         environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
         environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
-        environ['WATCHER.INITIATOR_CLIENT_ADDR'] = initiator_client_addr
+        environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address
 
         # target
         environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
