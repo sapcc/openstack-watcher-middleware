@@ -15,6 +15,7 @@
 import logging
 import json
 import yaml
+import time
 
 from datadog.dogstatsd import DogStatsd
 from pycadf import cadftaxonomy as taxonomy
@@ -88,6 +89,10 @@ class OpenStackWatcherMiddleware(object):
         :param environ: the WSGI environment dict
         :param start_response: WSGI callable
         """
+
+        # capture start timestamp
+        start = time.time()
+
         req = Request(environ)
 
         # determine initiator based on token
@@ -146,20 +151,41 @@ class OpenStackWatcherMiddleware(object):
                     )
         )
 
+        # capture the response status
+        self.response_status = None
+
         try:
-            self.metric_client.open_buffer()
+            def _start_response(status, headers, *args):
+                self.response_status = status
+                return start_response(status, headers, *args)
 
-            self.metric_client.increment(
-                "api_requests_total",
-                tags=labels,
-            )
-
-        except Exception as e:
-            self.logger.info("failed to submit metrics for %s: %s" % (str(labels), str(e)))
-
+            app_iter = self.app(environ, _start_response)
+            try:
+                for event in app_iter:
+                    yield event
+            finally:
+                if hasattr(app_iter, 'close'):
+                    app_iter.close()
+        except Exception:
+            raise
         finally:
-            self.metric_client.close_buffer()
-            return self.app(environ, start_response)
+            try:
+                self.metric_client.open_buffer()
+
+                if self.response_status:
+                    status_code = self.response_status.split()[0]
+                else:
+                    status_code = 'none'
+
+                labels.append("method:{0}".format(environ['REQUEST_METHOD']))
+                labels.append("status:{0}".format(status_code))
+
+                self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
+                self.metric_client.increment('api_requests_total', tags=labels)
+            except Exception as e:
+                self.logger.info("failed to submit metrics for %s: %s" % (str(labels), str(e)))
+            finally:
+                self.metric_client.close_buffer()
 
     def get_initiator_project_domain_user_uid_from_environ(self, req, environ):
         """
