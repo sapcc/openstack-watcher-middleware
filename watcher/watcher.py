@@ -164,8 +164,10 @@ class OpenStackWatcherMiddleware(object):
                 for event in app_iter:
                     yield event
             finally:
-                if hasattr(app_iter, 'close'):
-                    app_iter.close()
+                close_method = getattr(app_iter, 'close', None)
+                if callable(close_method):
+                    close_method()
+
         except Exception:
             raise
         finally:
