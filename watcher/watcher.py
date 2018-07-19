@@ -152,30 +152,31 @@ class OpenStackWatcherMiddleware(object):
         )
 
         # capture the response status
-        self.response_status = None
+        response_wrapper = {}
 
         try:
-            def _start_response(status, headers, *args):
-                self.response_status = status
-                return start_response(status, headers, *args)
+            def _start_response_wrapper(status, headers, exc_info=None):
+                response_wrapper.update(status=status, headers=headers, exc_info=exc_info)
+                return start_response(status, headers, exc_info)
 
-            app_iter = self.app(environ, _start_response)
             try:
-                for event in app_iter:
-                    yield event
-            finally:
-                close_method = getattr(app_iter, 'close', None)
-                if callable(close_method):
-                    close_method()
-
-        except Exception:
-            raise
+                # allow streaming of chunks
+                app_iter = self.app(environ, _start_response_wrapper)
+                try:
+                    for data in app_iter:
+                        yield data
+                finally:
+                    if hasattr(app_iter, 'close'):
+                        app_iter.close()
+            except Exception:
+                raise
         finally:
             try:
                 self.metric_client.open_buffer()
 
-                if self.response_status:
-                    status_code = self.response_status.split()[0]
+                status = response_wrapper.get('status')
+                if status:
+                    status_code = status.split()[0]
                 else:
                     status_code = 'none'
 
