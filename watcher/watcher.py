@@ -159,17 +159,7 @@ class OpenStackWatcherMiddleware(object):
                 response_wrapper.update(status=status, headers=headers, exc_info=exc_info)
                 return start_response(status, headers, exc_info)
 
-            try:
-                # allow streaming of chunks
-                app_iter = self.app(environ, _start_response_wrapper)
-                try:
-                    for data in app_iter:
-                        yield data
-                finally:
-                    if hasattr(app_iter, 'close'):
-                        app_iter.close()
-            except Exception:
-                raise
+            return self.app(environ, _start_response_wrapper)
         finally:
             try:
                 self.metric_client.open_buffer()
