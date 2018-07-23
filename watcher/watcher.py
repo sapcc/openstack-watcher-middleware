@@ -15,6 +15,7 @@
 import logging
 import json
 import yaml
+import time
 
 from datadog.dogstatsd import DogStatsd
 from pycadf import cadftaxonomy as taxonomy
@@ -88,6 +89,10 @@ class OpenStackWatcherMiddleware(object):
         :param environ: the WSGI environment dict
         :param start_response: WSGI callable
         """
+
+        # capture start timestamp
+        start = time.time()
+
         req = Request(environ)
 
         # determine initiator based on token
@@ -151,20 +156,33 @@ class OpenStackWatcherMiddleware(object):
             )
         )
 
+        # capture the response status
+        response_wrapper = {}
+
         try:
-            self.metric_client.open_buffer()
+            def _start_response_wrapper(status, headers, exc_info=None):
+                response_wrapper.update(status=status, headers=headers, exc_info=exc_info)
+                return start_response(status, headers, exc_info)
 
-            self.metric_client.increment(
-                "api_requests_total",
-                tags=labels,
-            )
-
-        except Exception as e:
-            self.logger.info("failed to submit metrics for %s: %s" % (str(labels), str(e)))
-
+            return self.app(environ, _start_response_wrapper)
         finally:
-            self.metric_client.close_buffer()
-            return self.app(environ, start_response)
+            try:
+                self.metric_client.open_buffer()
+
+                status = response_wrapper.get('status')
+                if status:
+                    status_code = status.split()[0]
+                else:
+                    status_code = 'none'
+
+                labels.append("status:{0}".format(status_code))
+
+                self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
+                self.metric_client.increment('api_requests_total', tags=labels)
+            except Exception as e:
+                self.logger.info("failed to submit metrics for %s: %s" % (str(labels), str(e)))
+            finally:
+                self.metric_client.close_buffer()
 
     def get_initiator_project_domain_user_uid_from_environ(self, environ):
         """
