@@ -192,8 +192,8 @@ class OpenStackWatcherMiddleware(object):
         :param environ: the request's environ
         :return: project, domain, user uid
         """
+        project_id = domain_id = user_id = taxonomy.UNKNOWN
         try:
-            project_id = domain_id = user_id = taxonomy.UNKNOWN
             project_id = environ.get('HTTP_X_PROJECT_ID')
             domain_id = environ.get('HTTP_X_DOMAIN_ID')
             user_id = environ.get('HTTP_X_USER_ID')

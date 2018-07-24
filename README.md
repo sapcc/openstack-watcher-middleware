@@ -74,7 +74,7 @@ A comprehensive definition of these actions is provided by the CADF specificatio
 The watcher is capable of classifying request actions based on the HTTP method and path as follows:
 ```
 |---------------|-------------------|-------------------|
-| HTTP method   | path              | action            |
+| HTTP method   | Path              | Action            |
 |---------------|-------------------|-------------------|
 | GET           |                   | read              |
 | GET           | ../detail         | read/list         | 
@@ -96,25 +96,25 @@ An example for swift (object-store) looks like this:
 ```yaml
 custom_actions:
   account:
-    - method: GET
-      action: 'read/list'
-    - method: POST
-      action: 'update'
+    - method:       GET
+      action_type:  read/list
+    - method:       POST
+      action_type:  update
 
     - container:
-        - method: GET
-          action: 'read/list'
-        - method: POST
-          action: 'update'
+        - method:       GET
+          action_type:  read/list
+        - method:       POST
+          action_type:  update
 
         - object:
-            - method: POST
-              action: 'update'
+            - method:       POST
+              action_type:  update
 ```
 This configuration results in the following mapping:
 ```
 |---------------|-----------------------------------|-------------------|
-| HTTP method   | path                              | action            |
+| HTTP method   | Path                              | Action            |
 |---------------|-----------------------------------|-------------------|
 | GET           | ../v1/account                     | read/list         |
 | POST          | ../v1/account                     | update            |
@@ -135,7 +135,7 @@ A `os-` prefix will be trimmed from the action.
 Example: Nova (compute) add security group to an instance and reset state
 ````
 |---------------|-----------------------------------|-------------------------------------------|---------------------------|
-| HTTP method   | path                              | JSON body                                 | CADF action               |
+| HTTP method   | Path                              | JSON body                                 | CADF action               |
 |---------------|-----------------------------------|-------------------------------------------|---------------------------|
 | POST          | /servers/{server_id}/action       | { "addSecurityGroup": { "name": "test" }} | update/addSecurityGroup   |
 | POST          | /servers/{server_id}/action       | { "os-resetState": { "state": "active" }} | update/resetState         |
@@ -153,6 +153,34 @@ custom_actions:
         - addSecurityGroup: update/addSecurityGroup
         - os-resetState: update/os-resetState
 ```
+
+#### CADF target type URI
+
+The *target type URI* is a CADF specific representation of the request's target URI consisting of
+a service-specific prefix and the target URI without version or UUID strings. 
+
+In most cases this middleware builds the target type URI by concatenating the `service/<service_type>` prefix and
+all parts of the target URI which do not contain a UUID.
+In case a UUID is found, it's substituted by the singular of the previous part.  
+Should this default behaviour not suffice, writing a [custom strategy](./watcher/target_type_uri_strategy.py) might be required.
+
+Examples:
+```
+|-------------|-------------------------------------------------|-----------------------------------------------|
+| Service     | Target URI                                      | CADF Target Type URI                          |
+|-------------|-------------------------------------------------|-----------------------------------------------|
+| compute     | /servers/{server_uuid}/action                   | service/compute/servers/server/action         |
+| dns         | /v2/zones/{zone_id}/recordsets/{recordset_id}   | service/dns/zones/zone/recordsets/recordset   |
+| ...         | ...                                             | ...                                           |
+|-------------|-------------------------------------------------|-----------------------------------------------|
+```
+
+### Metrics
+
+The openstack-watcher-middleware exposes the following Prometheus metrics via statsD.
+
+`openstack_watcher_api_requests_total`              - total count of api requests
+`openstack_watcher_api_requests_duration_seconds`   - request latency
 
 ## Supported Services
 
