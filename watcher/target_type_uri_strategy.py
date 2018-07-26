@@ -311,6 +311,12 @@ class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
             '\S+/domains/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+/default$': 'domains/config/group/option/default',
             '\S+/domains/\S+/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+$': 'domains/domain/config/group/option',
             '\S+/domains/\S+/config/[0-9a-zA-Z_]+$': 'domains/domain/config/group',
+            '\S+/domains/[^/]*$': 'domains/domain',
+            '\S+/regions/\S+': 'regions/region',
+            '\S+/projects/[^/]*$': 'projects/project',
+            '\S+/projects/[0-9a-zA-Z_]+/tags/[^/]*$': 'projects/project/tags/tag',
+            '\S+/users/[^/]*$': 'users/user',
+            '\S+/groups/[^/]*$': 'groups/group',
         }
         super(KeystoneTargetTypeURIStrategy, self).__init__(
             name='keystone',

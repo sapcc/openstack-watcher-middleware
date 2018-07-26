@@ -66,10 +66,6 @@ custom_actions:
     - method: GET
       action_type: read/list
 
-  role_assignments:
-    - method: GET
-      action_type: read/list
-
   policies:
     - method: GET
       action_type: read/list

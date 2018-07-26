@@ -10,7 +10,6 @@ from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
-
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
 KEYSTONE_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/keystone.yaml'
 
@@ -118,6 +117,26 @@ class TestKeystone(unittest.TestCase):
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'),
                 'expected': 'read/list'
             },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/identity/groups/group'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/my-group-name'),
+                'expected': 'service/identity/groups/group'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users'),
+                'expected': 'service/identity/groups/group/users'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/identity/groups/group/users/user'
+            },
         ]
 
         for stim in stimuli:
@@ -136,6 +155,10 @@ class TestKeystone(unittest.TestCase):
 
     def test_target_type_uri(self):
         stimuli = [
+            {
+                'request': Request.blank(path='/v3/regions/region-name'),
+                'expected': 'service/identity/regions/region'
+            },
             {
                 'request': Request.blank(path='/v3/auth/tokens'),
                 'expected': 'service/identity/auth/tokens'
@@ -181,6 +204,16 @@ class TestKeystone(unittest.TestCase):
                 'expected': 'service/identity/projects/project/groups/group/roles'
             },
             {
+                'request': Request.blank(path='/v3/projects/p-4711asxc'),
+                'expected': 'service/identity/projects/project'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/projects/b206a1900310484f8a9504754c84b067/tags/my-tag-name'
+                ),
+                'expected': 'service/identity/projects/project/tags/tag'
+            },
+            {
                 'request': fake.create_request(path='/v3/system/users/b206a1900310484f8a9504754c84b067/roles'),
                 'expected': 'service/identity/system/users/user/roles'
             },
@@ -193,6 +226,26 @@ class TestKeystone(unittest.TestCase):
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'),
                 'expected': 'service/identity/domains/domain/users/user/roles'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/domains/domain-name'),
+                'expected': 'service/identity/domains/domain'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/users/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/identity/users/user'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/users/d062392'),
+                'expected': 'service/identity/users/user'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/users/b206a1900310484f8a9504754c84b067/groups'),
+                'expected': 'service/identity/users/user/groups'
             },
             {
                 'request': fake.create_request(
