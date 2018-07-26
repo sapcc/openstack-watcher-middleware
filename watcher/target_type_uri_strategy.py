@@ -228,10 +228,14 @@ class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
             'members': 'member',
             'tags': 'tag',
         }
+        regex_mapping = {
+            'images/[^/]*$': 'images/image',
+        }
         super(GlanceTargetTypeURIStrategy, self).__init__(
             name='glance',
             prefix='service/storage/image',
-            mapping=mapping
+            mapping=mapping,
+            regex_mapping=regex_mapping
         )
 
 
