@@ -1,6 +1,8 @@
 OpenStack Watcher Middleware
 ===============================
 
+[![Build Status](https://travis-ci.org/sapcc/openstack-watcher-middleware.svg?branch=master)](https://travis-ci.org/sapcc/openstack-watcher-middleware)
+
 The OpenStack Watcher is a WSGI middleware capable of analyzing OpenStack traffic and classifying according to the CADF Specification outlined further below.
 
 ## Features
