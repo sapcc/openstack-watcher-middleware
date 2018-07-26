@@ -13,7 +13,6 @@
 # under the License.
 
 import re
-import six
 
 from pycadf import cadftaxonomy as taxonomy
 
@@ -48,11 +47,7 @@ class TargetTypeURIStrategy(object):
         self.prefix = prefix
         self.logger = logger
         self.mapping = mapping
-        self.regex_target_type_uri_map = {}
-
-        if regex_mapping:
-            for regex, ttu in six.iteritems(regex_mapping):
-                self.regex_target_type_uri_map[re.compile(regex)] = ttu
+        self.regex_mapping = regex_mapping
 
     def determine_target_type_uri(self, req):
         """
@@ -61,16 +56,14 @@ class TargetTypeURIStrategy(object):
         :param req: the request
         :return: the target.type_uri or 'unknown'
         """
-        target_type_uri = self._determine_target_type_uri_by_regex(req)
-        if not target_type_uri:
-            target_type_uri = self._determine_target_type_uri_by_parts(req)
-        return target_type_uri or taxonomy.UNKNOWN
+        # remove '/' at beginning and end. split by remaining '/'
+        path = req.path.lstrip('/').rstrip('/')
+        path_after_regex = self._determine_target_type_uri_by_regex(path)
+        return self._determine_target_type_uri_by_parts(path_after_regex.split('/')) or taxonomy.UNKNOWN
 
-    def _determine_target_type_uri_by_parts(self, req):
+    def _determine_target_type_uri_by_parts(self, path_parts):
         target_type_uri = []
         try:
-            path_parts = req.path.lstrip('/').split('/')
-
             for index, part in enumerate(path_parts):
                 # append part or, if it's a uid, append the replacement
                 # using replace_uid_with_singular_or_custom_mapping()
@@ -98,7 +91,7 @@ class TargetTypeURIStrategy(object):
             uri = '/'.join(target_type_uri).lstrip('/')
             return self.add_prefix_target_type_uri(uri)
 
-    def _determine_target_type_uri_by_regex(self, req):
+    def _determine_target_type_uri_by_regex(self, path):
         """
         some path' can only be handled via regex.
         for instance: neutron tag extension: '/v2.0/{resource_type}/{resource_id}/tags'
@@ -106,14 +99,13 @@ class TargetTypeURIStrategy(object):
         :param req: the request
         :return: the target_type_uri
         """
-        path = req.path.rstrip('/')
-        for regex in self.regex_target_type_uri_map.keys():
-            match = regex.match(path)
-            if match:
-                return self.add_prefix_target_type_uri(
-                    self.regex_target_type_uri_map.get(regex)
-                )
-        return None
+        for regex in self.regex_mapping.keys():
+            path = re.sub(
+                regex,
+                self.regex_mapping[regex],
+                path
+            )
+        return path
 
     def add_prefix_target_type_uri(self, target_type_uri):
         """
@@ -268,7 +260,7 @@ class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
 
 class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
     def __init__(self):
-        plural_mapping = {
+        mapping = {
             'service_profiles': 'profile',
             'service-provider': 'provider',
             'metering-labels': 'label',
@@ -280,13 +272,13 @@ class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
             'rule-types': 'type',
         }
         regex_mapping = {
-            '\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$': 'resource_type/resource/tags',
-            '\S+v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)': 'resource_type/resource/tags/tag'
+            'v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$': 'resource_type/resource/tags',
+            'v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)': 'resource_type/resource/tags/tag'
         }
         super(NeutronTargetTypeURIStrategy, self).__init__(
             name='nova',
             prefix='service/network',
-            mapping=plural_mapping,
+            mapping=mapping,
             regex_mapping=regex_mapping,
         )
 
@@ -307,16 +299,16 @@ class DesignateTargetTypeURIStrategy(TargetTypeURIStrategy):
 class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
     def __init__(self):
         regex_mapping = {
-            '\S+/domains/config/[0-9a-zA-Z_]+/default$': 'domains/config/group/default',
-            '\S+/domains/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+/default$': 'domains/config/group/option/default',
-            '\S+/domains/\S+/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+$': 'domains/domain/config/group/option',
-            '\S+/domains/\S+/config/[0-9a-zA-Z_]+$': 'domains/domain/config/group',
-            '\S+/domains/[^/]*$': 'domains/domain',
-            '\S+/regions/\S+': 'regions/region',
-            '\S+/projects/[^/]*$': 'projects/project',
-            '\S+/projects/[0-9a-zA-Z_]+/tags/[^/]*$': 'projects/project/tags/tag',
-            '\S+/users/[^/]*$': 'users/user',
-            '\S+/groups/[^/]*$': 'groups/group',
+            'domains/config/[0-9a-zA-Z_]+/default$': 'domains/config/group/default',
+            'domains/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+/default$': 'domains/config/group/option/default',
+            'domains/\S+/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+$': 'domains/domain/config/group/option',
+            'domains/\S+/config/[0-9a-zA-Z_]+$': 'domains/domain/config/group',
+            'domains/[^/]*$': 'domains/domain',
+            'regions/\S+': 'regions/region',
+            'projects/[^/]*$': 'projects/project',
+            'projects/[0-9a-zA-Z_]+/tags/[^/]*$': 'projects/project/tags/tag',
+            'users/[^/]*$': 'users/user',
+            'groups/[^/]*$': 'groups/group',
         }
         super(KeystoneTargetTypeURIStrategy, self).__init__(
             name='keystone',

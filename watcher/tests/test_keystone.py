@@ -123,14 +123,16 @@ class TestKeystone(unittest.TestCase):
             req = stim.get('request')
             expected = stim.get('expected')
             target_type_uri = self.watcher.determine_target_type_uri(req)
+            actual_cadf_action = self.watcher.determine_cadf_action(config, target_type_uri, req)
+
             self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
             self.assertIsNot(target_type_uri, 'unknown',
                              "target.type_uri for req {0} must not be 'unknown'".format(req))
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual_cadf_action,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, target_type_uri, expected, actual_cadf_action)
             )
 
     def test_target_type_uri(self):
@@ -269,10 +271,12 @@ class TestKeystone(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'"
+                .format(req.method, req.path, expected, actual)
             )
 
     def test_get_target_project_domain_and_user_id_from_keystone_authentication_request(self):
