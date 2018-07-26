@@ -116,27 +116,7 @@ class TestKeystone(unittest.TestCase):
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'),
                 'expected': 'read/list'
-            },
-            {
-                'request': fake.create_request(
-                    path='/v3/groups/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/identity/groups/group'
-            },
-            {
-                'request': fake.create_request(
-                    path='/v3/groups/my-group-name'),
-                'expected': 'service/identity/groups/group'
-            },
-            {
-                'request': fake.create_request(
-                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users'),
-                'expected': 'service/identity/groups/group/users'
-            },
-            {
-                'request': fake.create_request(
-                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/identity/groups/group/users/user'
-            },
+            }
         ]
 
         for stim in stimuli:
@@ -263,7 +243,27 @@ class TestKeystone(unittest.TestCase):
                     path='/v3/domains/config/b206a1900310484f8a9504754c84b067/default'
                 ),
                 'expected': 'service/identity/domains/config/group/default'
-            }
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/identity/groups/group'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/my-group-name'),
+                'expected': 'service/identity/groups/group'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users'),
+                'expected': 'service/identity/groups/group/users'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/groups/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/identity/groups/group/users/user'
+            },
         ]
 
         for stim in stimuli:
@@ -395,6 +395,7 @@ class TestKeystone(unittest.TestCase):
                 self.watcher.get_project_domain_and_user_id_from_keystone_authentication_request(req),
                 s.get('expected'),
             )
+
 
 if __name__ == '__main__':
     unittest.main()
