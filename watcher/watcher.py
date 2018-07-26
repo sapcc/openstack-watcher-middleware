@@ -27,6 +27,8 @@ from . import target_type_uri_strategy as ttu
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
+
+# Map of available strategies to determine the target type URI
 STRATEGIES = {
     'object-store': ttu.SwiftTargetTypeURIStrategy,
     'compute': ttu.NovaTargetTypeURIStrategy,
@@ -35,6 +37,7 @@ STRATEGIES = {
     'network': ttu.NeutronTargetTypeURIStrategy,
     'dns': ttu.DesignateTargetTypeURIStrategy,
     'identity': ttu.KeystoneTargetTypeURIStrategy,
+    'share': ttu.ManilaTargetTypeURIStrategy
 }
 
 

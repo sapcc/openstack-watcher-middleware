@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import logging
 import re
 
 from pycadf import cadftaxonomy as taxonomy
@@ -31,7 +32,7 @@ class TargetTypeURIStrategy(object):
         body: {"addFloatingIp": {"address": "x.x.x.x", "fixed_address": "x.x.x.x"}
         => <prefix>/servers/server/addFloatingIp
     """
-    def __init__(self, name='generic', prefix=None, mapping={}, regex_mapping={}, logger=None):
+    def __init__(self, name='generic', prefix=None, mapping={}, regex_mapping={}, logger=logging.getLogger(__name__)):
         """
         a strategy to determine the target.type_uri
 
@@ -100,11 +101,15 @@ class TargetTypeURIStrategy(object):
         :return: the target_type_uri
         """
         for regex in self.regex_mapping.keys():
-            path = re.sub(
-                regex,
-                self.regex_mapping[regex],
-                path
-            )
+            try:
+                path = re.sub(
+                    regex,
+                    self.regex_mapping[regex],
+                    path
+                )
+            except Exception as e:
+                self.logger.error('failed to apply regex {0} to path: {1}: {2}'.format(regex, path, e))
+                continue
         return path
 
     def add_prefix_target_type_uri(self, target_type_uri):
@@ -318,5 +323,22 @@ class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
             name='keystone',
             prefix='service/identity',
             mapping={},
+            regex_mapping=regex_mapping
+        )
+
+
+class ManilaTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        mapping = {
+            'metadata': 'key',
+            'os-share-unmanage': 'share'
+        }
+        regex_mapping = {
+            '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/[^/]*': 'tenant'
+        }
+        super(ManilaTargetTypeURIStrategy, self).__init__(
+            name='manila',
+            prefix='service/storage/share',
+            mapping=mapping,
             regex_mapping=regex_mapping
         )
