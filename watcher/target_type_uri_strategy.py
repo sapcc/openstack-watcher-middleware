@@ -38,10 +38,12 @@ class TargetTypeURIStrategy(object):
 
         :param strategy: the name of the strategy
         :param prefix: the prefix to apply to the target.type_uri
+               in most cases: service/<service_type>
         :param mapping: the mapping of {plural: singular}
                only required if the singular != plural.rstrip(s)
                example: {'service_profiles': 'profile'}
-        :param regex_mapping: mapping of { regex : target_type_uri }
+        :param regex_mapping: mapping of { regex : replacement }
+               used to replace parts of the path
         :param logger: the logger
         """
         self.name = name
@@ -59,7 +61,7 @@ class TargetTypeURIStrategy(object):
         """
         # remove '/' at beginning and end. split by remaining '/'
         path = req.path.lstrip('/').rstrip('/')
-        path_after_regex = self._determine_target_type_uri_by_regex(path)
+        path_after_regex = self._apply_regex_to_path(path)
         return self._determine_target_type_uri_by_parts(path_after_regex.split('/')) or taxonomy.UNKNOWN
 
     def _determine_target_type_uri_by_parts(self, path_parts):
@@ -92,7 +94,7 @@ class TargetTypeURIStrategy(object):
             uri = '/'.join(target_type_uri).lstrip('/')
             return self.add_prefix_target_type_uri(uri)
 
-    def _determine_target_type_uri_by_regex(self, path):
+    def _apply_regex_to_path(self, path):
         """
         some path' can only be handled via regex.
         for instance: neutron tag extension: '/v2.0/{resource_type}/{resource_id}/tags'
@@ -150,6 +152,7 @@ class TargetTypeURIStrategy(object):
         # ignore if previous part is version as in /v3/<project_id>/...
         if common.is_version_string(previous_part):
             return None
+        # replace plural ending with 'ies' by singular ending with 'y'
         if common.is_uid_string(part):
             if previous_part.endswith('ies'):
                 return previous_part.rstrip('ies') + 'y'
@@ -322,7 +325,6 @@ class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
         super(KeystoneTargetTypeURIStrategy, self).__init__(
             name='keystone',
             prefix='service/identity',
-            mapping={},
             regex_mapping=regex_mapping
         )
 
