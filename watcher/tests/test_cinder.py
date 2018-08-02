@@ -18,9 +18,13 @@ class TestCinder(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
-        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {})
-        self.watcher.service_type = 'volume'
-        self.watcher.cadf_service_name = 'service/storage/block'
+        self.watcher = OpenStackWatcherMiddleware(
+            fake.FakeApp(),
+            {
+                'service_type': 'volume',
+                'cadf_service_name': 'service/storage/block'
+            }
+        )
         self.is_setup = True
 
     def test_cadf_action(self):

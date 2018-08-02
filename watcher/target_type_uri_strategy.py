@@ -340,7 +340,6 @@ class ManilaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-share-unmanage': 'share'
         }
         regex_mapping = {
-            '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/[^/]*': 'tenant',
             'shares/(?!detail)[^/]*$': 'shares/share',
             'share-groups/[^/]*$': 'share-groups/share-group',
             'share-instances/[^/]*$': 'share-instances/share-instance',
@@ -354,5 +353,26 @@ class ManilaTargetTypeURIStrategy(TargetTypeURIStrategy):
             name='manila',
             prefix='service/storage/share',
             mapping=mapping,
+            regex_mapping=regex_mapping
+        )
+
+
+class IronicTargetTypeURIStrategy(TargetTypeURIStrategy):
+    def __init__(self):
+        regex_mapping = {
+            'nodes/[^/]+': 'nodes/node',
+            'drivers/[^/]+': 'drivers/driver',
+            'heartbeat/[^/]+': 'heartbeat/node',
+            'bios/[^/]+': 'bios/setting',
+            'traits/[^/]+': 'traits/trait',
+            'vifs/[^/]+': 'vifs/vif',
+            'portgroups/[^/]+': 'portgroups/portgroup',
+            'ports/[^/]+': 'ports/port',
+            'connectors/[^/]+': 'connectors/connector',
+            'chassis/[^/]+': 'chassis/chassis',
+        }
+        super(IronicTargetTypeURIStrategy, self).__init__(
+            name='ironic',
+            prefix='service/compute/baremetal',
             regex_mapping=regex_mapping
         )

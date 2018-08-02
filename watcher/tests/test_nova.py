@@ -17,9 +17,12 @@ class TestNova(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
-        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {})
-        self.watcher.service_type = 'compute'
-        self.nova = ttus.NovaTargetTypeURIStrategy()
+        self.watcher = OpenStackWatcherMiddleware(
+            fake.FakeApp(),
+            {
+               'service_type': 'compute'
+            }
+        )
         self.is_setup = True
 
     def test_custom_action(self):
@@ -115,7 +118,7 @@ class TestNova(unittest.TestCase):
         for s in stimuli:
             req = s.get('request')
             expected = s.get('expected')
-            target_type_uri = self.nova.determine_target_type_uri(req)
+            target_type_uri = self.watcher.determine_target_type_uri(req)
             self.assertIsNotNone(target_type_uri, "target.type_uri should not be None. request: {0}".format(req))
             self.assertIsNot(target_type_uri, 'unknown', "target.type_uri shoud not be 'unknown'. request: {0}".format(req))
             self.assertEqual(
@@ -129,6 +132,11 @@ class TestNova(unittest.TestCase):
             {
                 'request': fake.create_request(
                     path='/flavors/myflavorname'),
+                'expected': 'service/compute/flavors/flavor'
+            },
+            {
+                'request': fake.create_request(
+                    path='/flavors/0123456789abcdef0123456789abcdef'),
                 'expected': 'service/compute/flavors/flavor'
             },
         ]

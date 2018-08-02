@@ -198,6 +198,7 @@ This middleware currently provides CADF-compliant support for the following Open
 | Swift                 | object-store          |
 | Designate             | dns                   |
 | Keystone              | identity              |
+| Ironic                | baremetal             |
 |-----------------------|-----------------------|
 ````
 Configurations for these services are provided [here](./etc) 

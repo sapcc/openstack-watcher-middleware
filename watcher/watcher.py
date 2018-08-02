@@ -37,7 +37,8 @@ STRATEGIES = {
     'network': ttu.NeutronTargetTypeURIStrategy,
     'dns': ttu.DesignateTargetTypeURIStrategy,
     'identity': ttu.KeystoneTargetTypeURIStrategy,
-    'share': ttu.ManilaTargetTypeURIStrategy
+    'share': ttu.ManilaTargetTypeURIStrategy,
+    'baremetal': ttu.IronicTargetTypeURIStrategy
 }
 
 
@@ -69,6 +70,19 @@ class OpenStackWatcherMiddleware(object):
                 self.logger.warning("custom actions not available: %s", str(e))
 
         self.custom_action_config = self.watcher_config.get('custom_actions', {})
+
+        # init strategy used to determine target type URI
+        strat = STRATEGIES.get(
+            self.service_type,
+            ttu.TargetTypeURIStrategy
+        )
+        strategy = strat()
+        strategy.name = self.service_type
+        strategy.logger = self.logger
+
+        if self.prefix and not strategy.prefix:
+            strategy.prefix = self.prefix
+        self.strategy = strategy
 
         self.metric_client = DogStatsd(
             host=self.wsgi_config.get("statsd_host", "127.0.0.1"),
@@ -340,19 +354,8 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: the target type uri or taxonomy.UNKNOWN
         """
-        strat = STRATEGIES.get(
-            self.service_type,
-            ttu.TargetTypeURIStrategy
-        )
-        strategy = strat()
-        strategy.name = self.service_type
-        strategy.logger = self.logger
-
-        if self.prefix and not strategy.prefix:
-            strategy.prefix = self.prefix
-
-        self.logger.debug("selected strategy '{0}' to determine target.type_uri".format(strategy.name))
-        return strategy.determine_target_type_uri(req)
+        self.logger.debug("selected strategy '{0}' to determine target.type_uri".format(self.strategy.name))
+        return self.strategy.determine_target_type_uri(req)
 
     def determine_cadf_action(self, custom_action_config, target_type_uri, req):
         """

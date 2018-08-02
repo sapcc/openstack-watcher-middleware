@@ -10,7 +10,7 @@ WORKDIR = os.path.dirname(os.path.realpath(__file__))
 MANILA_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/manila.yaml'
 
 
-class TestCinder(unittest.TestCase):
+class TestManily(unittest.TestCase):
     is_setup = False
 
     def setUp(self):
@@ -111,37 +111,37 @@ class TestCinder(unittest.TestCase):
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/extensions'),
-                'expected': 'service/storage/share/tenant/extensions'
+                'expected': 'service/storage/share/extensions'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/limits'),
-                'expected': 'service/storage/share/tenant/limits'
+                'expected': 'service/storage/share/limits'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares'),
-                'expected': 'service/storage/share/tenant/shares'
+                'expected': 'service/storage/share/shares'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/detail'),
-                'expected': 'service/storage/share/tenant/shares/detail'
+                'expected': 'service/storage/share/shares/detail'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/share/tenant/shares/share'
+                'expected': 'service/storage/share/shares/share'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/export_locations/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/share/tenant/shares/share/export_locations/export_location'
+                'expected': 'service/storage/share/shares/share/export_locations/export_location'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/metadata/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/share/tenant/shares/share/metadata/key'
+                'expected': 'service/storage/share/shares/share/metadata/key'
             },
             {
                 'request': fake.create_request(
@@ -154,7 +154,7 @@ class TestCinder(unittest.TestCase):
                         }
                     }
                 ),
-                'expected': 'service/storage/share/tenant/shares/share/action'
+                'expected': 'service/storage/share/shares/share/action'
             },
             {
                 'request': fake.create_request(
@@ -163,7 +163,7 @@ class TestCinder(unittest.TestCase):
                         "unmanage": "null"
                     }
                 ),
-                'expected': 'service/storage/share/tenant/shares/share/action'
+                'expected': 'service/storage/share/shares/share/action'
             },
             {
                 'request': fake.create_request(
@@ -172,19 +172,19 @@ class TestCinder(unittest.TestCase):
                         "unmanage": "null"
                     }
                 ),
-                'expected': 'service/storage/share/tenant/snapshots/snapshot/action'
+                'expected': 'service/storage/share/snapshots/snapshot/action'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/os-share-unmanage/b206a1900310484f8a9504754c84b067/unmanage'
                 ),
-                'expected': 'service/storage/share/tenant/os-share-unmanage/share/unmanage'
+                'expected': 'service/storage/share/os-share-unmanage/share/unmanage'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/share-group-types/foobar'
                 ),
-                'expected': 'service/storage/share/tenant/share-group-types/share-group-type'
+                'expected': 'service/storage/share/share-group-types/share-group-type'
             },
         ]
 
