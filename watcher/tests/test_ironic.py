@@ -2,7 +2,6 @@ import os
 import unittest
 
 from . import fake
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
@@ -20,15 +19,12 @@ class TestIronic(unittest.TestCase):
             fake.FakeApp(),
             config={
                 'service_type': 'baremetal',
+                'config_file': IRONIC_CONFIG_PATH
             }
         )
         self.is_setup = True
 
     def test_cadf_action(self):
-        raw_config = load_config(IRONIC_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the ironic config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(path='/v1/nodes'),
@@ -54,21 +50,30 @@ class TestIronic(unittest.TestCase):
                 'request': fake.create_request(path='/v1/drivers/mydriver/vendor_passthru/methods'),
                 'expected': 'read/list'
             },
+            {
+                'request': fake.create_request(
+                    path='/v1/nodes/mynode/states'),
+                'expected': 'read'
+            },
+            {
+                'request': fake.create_request(path='/v1/chassis'),
+                'expected': 'read/list'
+            },
+            {
+                'request': fake.create_request(path='/v1/chassis/mainchassis'),
+                'expected': 'read'
+            },
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown', "target.type_uri for req {0} must not be 'unknown'".format(req))
-
-            actual = self.watcher.determine_cadf_action(config, target_type_uri, req)
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
                 actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, target_type_uri, expected, actual)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
@@ -122,13 +127,65 @@ class TestIronic(unittest.TestCase):
               'request': fake.create_request(
                   path='/v1/nodes/hase/bios/biossettingname'),
               'expected': 'service/compute/baremetal/nodes/node/bios/setting'
-            }
+            },
+            {
+                'request': fake.create_request(
+                    path='/v1/nodes/mynnode/management/boot_device/supported'),
+                'expected': 'service/compute/baremetal/nodes/node/management/boot_device/supported'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v1/nodes/mynode/states/raid'),
+                'expected': 'service/compute/baremetal/nodes/node/states/raid'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v1/nodes/mynode/states'),
+                'expected': 'service/compute/baremetal/nodes/node/states'
+            },
+            {
+                'request': fake.create_request(path='/v1/nodes/mynode/vendor_passthru/methods'),
+                'expected': 'service/compute/baremetal/nodes/node/vendor_passthru/methods'
+            },
+            {
+                'request': fake.create_request(path='/v1/nodes/foobar/portgroups/detail'),
+                'expected': 'service/compute/baremetal/nodes/node/portgroups/detail'
+            },
+            {
+                'request': fake.create_request(path='/v1/volume/connectors/myconnector'),
+                'expected': 'service/compute/baremetal/volume/connectors/connector'
+            },
+            {
+                'request': fake.create_request(path='/v1/portgroups/someportgroup/ports/detail'),
+                'expected': 'service/compute/baremetal/portgroups/portgroup/ports/detail'
+            },
+            {
+                'request': fake.create_request(path='/v1/nodes/mynode/volume/connectors'),
+                'expected': 'service/compute/baremetal/nodes/node/volume/connectors'
+            },
+            {
+                'request': fake.create_request(path='/v1/nodes/mynode/volume/targets'),
+                'expected': 'service/compute/baremetal/nodes/node/volume/targets'
+            },
+            {
+                'request': fake.create_request(path='/v1/chassis/mainchassis'),
+                'expected': 'service/compute/baremetal/chassis/chassis'
+            },
+            {
+                'request': fake.create_request(path='/v1/chassis/detail'),
+                'expected': 'service/compute/baremetal/chassis/detail'
+            },
+            {
+                'request': fake.create_request(path='/v1/heartbeat/dev-instance-00'),
+                'expected': 'service/compute/baremetal/heartbeat/node'
+            },
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
             actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
                 actual,
                 expected,

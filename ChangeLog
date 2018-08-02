@@ -1,6 +1,64 @@
 CHANGES
 =======
 
+* fix name mapping. use path\_keywords
+
+1.0.14
+------
+
+* neturon name mapping
+
+1.0.13
+------
+
+* fix cinder, nova name mapping
+
+1.0.12
+------
+
+* fix manila mapping, regex
+
+1.0.11
+------
+
+* add ironic support and tests
+
+1.0.10
+------
+
+* manila, nova name lookup fix
+* add doc
+
+1.0.9
+-----
+
+* add manila mapping and tests
+* add pep8 style check
+* add build status
+* add travis
+
+1.0.8
+-----
+
+* glance naming
+* fix keystone target\_type\_uri name mapping
+* fix keystone test
+
+1.0.7
+-----
+
+* enhanced the keystone uri strategy to properly map name lookups to target\_type\_uri
+
+1.0.6
+-----
+
+* readme
+* Latency and status (#3)
+* enable check body of authentication requests
+* client\_addr->host\_address
+* add /endpoints and test
+* [swift] it's not /v1/info but /info
+* dry requirements
 * bump to 1.0.0
 * fix logging
 * default target.project\_id to initiator.project\_id if discovery fails

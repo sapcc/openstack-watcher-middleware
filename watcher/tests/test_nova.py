@@ -1,14 +1,11 @@
 import os
 import unittest
 
-import watcher.common as common
-from watcher.watcher import load_config
 from . import fake
 from watcher.watcher import OpenStackWatcherMiddleware
-from watcher import target_type_uri_strategy as ttus
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-NOVA_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/nova-complex.yaml'
+NOVA_CONFIG_PATH = WORKDIR + '/fixtures/nova-complex.yaml'
 
 
 class TestNova(unittest.TestCase):
@@ -20,16 +17,13 @@ class TestNova(unittest.TestCase):
         self.watcher = OpenStackWatcherMiddleware(
             fake.FakeApp(),
             {
-               'service_type': 'compute'
+                'service_type': 'compute',
+                'config_file': NOVA_CONFIG_PATH
             }
         )
         self.is_setup = True
 
     def test_custom_action(self):
-        raw_config = load_config(NOVA_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the nova complex config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(
@@ -65,7 +59,7 @@ class TestNova(unittest.TestCase):
             },
             {
                 'request': fake.create_request(path='/v2.1/servers/0123456789abcdef0123456789abcdef/ips/label'),
-                'expected': 'read/list'
+                'expected': 'read'
             },
             {
                 'request': fake.create_request(
@@ -73,7 +67,7 @@ class TestNova(unittest.TestCase):
                     method='POST',
                     body_dict={"os-getConsoleOutput": {"length": 50}}
                 ),
-                'expected': 'update/getConsoleOutput'
+                'expected': 'update/os-getConsoleOutput'
             },
             {
                 'request': fake.create_request(
@@ -118,17 +112,26 @@ class TestNova(unittest.TestCase):
         for s in stimuli:
             req = s.get('request')
             expected = s.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, "target.type_uri should not be None. request: {0}".format(req))
-            self.assertIsNot(target_type_uri, 'unknown', "target.type_uri shoud not be 'unknown'. request: {0}".format(req))
+            actual = self.watcher.determine_cadf_action(req)
+
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0}' should be '{1}'".format(req, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
+            {
+                'request': fake.create_request(
+                    path='/servers/myserver'),
+                'expected': 'service/compute/servers/server'
+            },
+            {
+                'request': fake.create_request(
+                    path='/servers/0123456789abcdef0123456789abcdef'),
+                'expected': 'service/compute/servers/server'
+            },
             {
                 'request': fake.create_request(
                     path='/flavors/myflavorname'),
@@ -141,23 +144,122 @@ class TestNova(unittest.TestCase):
             },
             {
                 'request': fake.create_request(
-                    path='/flavors/0123456789abcdef0123456789abcdef/os-extra_specs'),
-                'expected': 'service/compute/flavors/flavor/os-extra_specs'
+                    path='/flavors/0123456789abcdef0123456789abcdef'),
+                'expected': 'service/compute/flavors/flavor'
             },
             {
                 'request': fake.create_request(
-                    path='flavors/60/os-extra_specs'),
-                'expected': 'service/compute/flavors/flavor/os-extra_specs'
+                    path='/v2.1/os-aggregates/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"add_host": {"host": "21549b2f665945baaa7101926a00143c"}},
+                ),
+                'expected': 'service/compute/os-aggregates/os-aggregate/action'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.1/servers/myservername/action',
+                    method='POST',
+                    body_dict={"os-getVNCConsole": {"type": "novnc"}}
+                ),
+                'expected': 'service/compute/servers/server/action'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.1/servers/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"os-getVNCConsole": {"type": "novnc"}}
+                ),
+                'expected': 'service/compute/servers/server/action'
+            },
+            {
+                'request': fake.create_request(
+                    path='/servers/0123456789abcdef0123456789abcdef/metadata/0123456789abcdef0123456789abcdef'
+                ),
+                'expected': 'service/compute/servers/server/metadata/key'
+            },
+            {
+                'request': fake.create_request(
+                    path='/servers/myserver/metadata/foobar'
+                ),
+                'expected': 'service/compute/servers/server/metadata/key'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-availability-zone/detail'
+                ),
+                'expected': 'service/compute/os-availability-zone/detail'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-quota-sets/0123456789abcdef0123456789abcdef/defaults'
+                ),
+                'expected': 'service/compute/os-quota-sets/os-quota-set/defaults'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-networks/add'
+                ),
+                'expected': 'service/compute/os-networks/add'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-networks/0123456789abcdef0123456789abcdef'
+                ),
+                'expected': 'service/compute/os-networks/os-network'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-hypervisors/foobar/servers'
+                ),
+                'expected': 'service/compute/os-hypervisors/os-hypervisor/servers'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-certificates/root'
+                ),
+                'expected': 'service/compute/os-certificates/root'
+            },
+            {
+                'request': fake.create_request(
+                    path='/os-cloudpipe/configure-project'
+                ),
+                'expected': 'service/compute/os-cloudpipe/configure-project'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.1'
+                ),
+                'expected': 'service/compute/versions'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0'
+                ),
+                'expected': 'service/compute/versions'
+            },
+            {
+                'request': fake.create_request(
+                    path='/'
+                ),
+                'expected': 'service/compute/root'
+            },
+            {
+                'request': fake.create_request(
+                    path=''
+                ),
+                'expected': 'service/compute/root'
             },
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
 

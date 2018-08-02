@@ -1,10 +1,8 @@
 import os
+import six
 import unittest
 
-from webob import Request
-
 from . import fake
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
@@ -12,7 +10,7 @@ WORKDIR = os.path.dirname(os.path.realpath(__file__))
 SWIFT_CONFIG_PATH = WORKDIR + '/fixtures/swift.yaml'
 
 
-class TestDesignate(unittest.TestCase):
+class TestSwift(unittest.TestCase):
     is_setup = False
 
     def setUp(self):
@@ -22,11 +20,21 @@ class TestDesignate(unittest.TestCase):
             fake.FakeApp(),
             {
                 'service_type': 'object-store',
-                'cadf_service_name': 'service/storage/object',
+                'config_file': SWIFT_CONFIG_PATH,
                 'project_id_from_path': 'true'
              }
         )
         self.is_setup = True
+
+    def test_prefix(self):
+        expected = 'service/storage/object'
+        actual = self.watcher.strategy.target_type_uri_prefix
+
+        self.assertEqual(
+            actual,
+            expected,
+            "service type is object-store, hence the prefix should be '{0}' but got '{1}'".format(expected, actual)
+        )
 
     def test_get_target_project_uid_from_path(self):
         self.assertEqual(
@@ -36,10 +44,6 @@ class TestDesignate(unittest.TestCase):
         )
 
     def test_cadf_action(self):
-        raw_config = load_config(SWIFT_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the swift config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(
@@ -83,6 +87,12 @@ class TestDesignate(unittest.TestCase):
             },
             {
                 'request': fake.create_request(
+                    path='/v1/AUTH_0123456789/containername',
+                ),
+                'expected': 'read/list'
+            },
+            {
+                'request': fake.create_request(
                     path='/v1/AUTH_0123456789',
                     method='HEAD'
 
@@ -105,52 +115,128 @@ class TestDesignate(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown',
-                             "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
             {
-                'request': Request.blank(path='/v1/AUTH_0123456789/containername/testfile'),
+                'request': fake.create_request(
+                    path='/v1/AUTH_0123456789/containername/testfile'
+                ),
                 'expected': 'service/storage/object/account/container/object'
             },
             {
-                'request': Request.blank(path='/v1/AUTH_0123456789/containername'),
+                'request': fake.create_request(
+                    path='/v1/AUTH_foobar/containername/testfile'
+                ),
+                'expected': 'service/storage/object/account/container/object'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v1/AUTH_0123456789/containername'
+                ),
                 'expected': 'service/storage/object/account/container'
             },
             {
-                'request': Request.blank(path='/v1/AUTH_0123456789'),
+                'request': fake.create_request(
+                    path='/v1/AUTH_0123456789'
+                ),
                 'expected': 'service/storage/object/account'
             },
             {
-                'request': Request.blank(path='/v1'),
-                'expected': 'unknown'
+                'request': fake.create_request(
+                    path='/v1'
+                ),
+                'expected': 'service/storage/object/versions'
             },
             {
-                'request': Request.blank('/v1/endpoints'),
+                'request': fake.create_request(
+                    path='/v1/endpoints'
+                ),
                 'expected': 'service/storage/object/endpoints'
             },
             {
-                'request': Request.blank('/info'),
+                'request': fake.create_request(
+                    path='/info'
+                ),
                 'expected': 'service/storage/object/info'
+            },
+            {
+                'request': fake.create_request(
+                    path='/'
+                ),
+                'expected': 'service/storage/object/root'
+            },
+            {
+                'request': fake.create_request(
+                    path=''
+                ),
+                'expected': 'service/storage/object/root'
             }
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
+            
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
+            )
+
+    def test_get_swift_project_id_from_path(self):
+        stimuli = [
+            {
+                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132',
+                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
+                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
+            },
+            {
+                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container',
+                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
+                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
+            },
+            {
+                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container/object',
+                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
+                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container/object' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
+            },
+            {
+                'path': 'v1/foo/bar',
+                'expected': 'unknown',
+                'help': "'v1/foo/bar' does not contain a swift project id"
+            }
+        ]
+
+        for stim in stimuli:
+            self.assertEqual(
+                self.watcher.strategy.get_swift_project_id_from_path(stim.get('path')),
+                stim.get('expected'),
+                stim.get('help')
+            )
+
+    def test_get_account_uid_and_container_name_from_request(self):
+        stimuli = {
+            '/v1/AUTH_0123456789/containername/testfile': ('0123456789', 'containername'),
+        }
+
+        for stim, expected in six.iteritems(stimuli):
+            req = fake.create_request(
+                path=stim,
+                method='PUT'
+            )
+
+            self.assertEqual(
+                self.watcher.get_target_account_container_id_from_request(req),
+                expected
             )
 
 

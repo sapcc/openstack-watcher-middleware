@@ -1,17 +1,14 @@
 import os
 import unittest
 
-from webob import Request
 from pycadf import cadftaxonomy as taxonomy
 
 from . import fake
-import watcher.common as common
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-KEYSTONE_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/keystone.yaml'
+KEYSTONE_CONFIG_PATH = WORKDIR + '/fixtures/keystone.yaml'
 
 
 class TestKeystone(unittest.TestCase):
@@ -20,21 +17,23 @@ class TestKeystone(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
-        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {'service_type': 'identity'})
+        self.watcher = OpenStackWatcherMiddleware(
+            fake.FakeApp(),
+            {
+                'service_type': 'identity',
+                'config_file': KEYSTONE_CONFIG_PATH
+            }
+        )
         self.is_setup = True
 
     def test_prefix(self):
         self.assertEqual(
-            self.watcher.prefix,
-            'service/identity',
-            "service type is identity, hence the prefix should be 'service/identity'"
+            self.watcher.strategy.target_type_uri_prefix,
+            'data/security',
+            "service type is identity, hence the prefix should be 'data/security'"
         )
 
     def test_cadf_action(self):
-        raw_config = load_config(KEYSTONE_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the keystone config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(
@@ -122,156 +121,177 @@ class TestKeystone(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            actual_cadf_action = self.watcher.determine_cadf_action(config, target_type_uri, req)
-
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown',
-                             "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                actual_cadf_action,
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, target_type_uri, expected, actual_cadf_action)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
             {
-                'request': Request.blank(path='/v3/regions/region-name'),
-                'expected': 'service/identity/regions/region'
+                'request': fake.create_request(path='/v3/regions/region-name'),
+                'expected': 'data/security/regions/region'
             },
             {
-                'request': Request.blank(path='/v3/auth/tokens'),
-                'expected': 'service/identity/auth/tokens'
+                'request': fake.create_request(path='/v3/auth/tokens'),
+                'expected': 'data/security/auth/tokens'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/config/b206a1900310484f8a9504754c84b067/ldap'
                 ),
-                'expected': 'service/identity/domains/domain/config/group/option'
+                'expected': 'data/security/domains/domain/config/group/option'
             },
             {
                 'request': fake.create_request(
                     path='/v3/OS-INHERIT/domains/b206a1900310484f8a9504754c84b067/groups/b206a1900310484f8a9504754c84b067/roles/inherited_to_projects'
                 ),
-                'expected': 'service/identity/OS-INHERIT/domains/domain/groups/group/roles/inherited_to_projects'
+                'expected': 'data/security/OS-INHERIT/domains/domain/groups/group/roles/inherited_to_projects'
             },
             {
                 'request': fake.create_request(
                     path='/v3/OS-INHERIT/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles/inherited_to_projects',
                 ),
-                'expected': 'service/identity/OS-INHERIT/domains/domain/users/user/roles/inherited_to_projects'
+                'expected': 'data/security/OS-INHERIT/domains/domain/users/user/roles/inherited_to_projects'
             },
             {
                 'request': fake.create_request(path='/v3/auth/tokens/OS-PKI/revoked'),
-                'expected': 'service/identity/auth/tokens/OS-PKI/revoked'
+                'expected': 'data/security/auth/tokens/OS-PKI/revoked'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'
                 ),
-                'expected': 'service/identity/domains/domain/users/user/roles'
+                'expected': 'data/security/domains/domain/users/user/roles'
             },
             {
                 'request': fake.create_request(
                     path='/v3/projects/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'
                 ),
-                'expected': 'service/identity/projects/project/users/user/roles'
+                'expected': 'data/security/projects/project/users/user/roles'
             },
             {
                 'request': fake.create_request(
                     path='/v3/projects/b206a1900310484f8a9504754c84b067/groups/b206a1900310484f8a9504754c84b067/roles'
                 ),
-                'expected': 'service/identity/projects/project/groups/group/roles'
+                'expected': 'data/security/projects/project/groups/group/roles'
             },
             {
-                'request': Request.blank(path='/v3/projects/p-4711asxc'),
-                'expected': 'service/identity/projects/project'
+                'request': fake.create_request(path='/v3/projects/p-4711asxc'),
+                'expected': 'data/security/projects/project'
             },
             {
                 'request': fake.create_request(
                     path='/v3/projects/b206a1900310484f8a9504754c84b067/tags/my-tag-name'
                 ),
-                'expected': 'service/identity/projects/project/tags/tag'
+                'expected': 'data/security/projects/project/tags/tag'
             },
             {
                 'request': fake.create_request(path='/v3/system/users/b206a1900310484f8a9504754c84b067/roles'),
-                'expected': 'service/identity/system/users/user/roles'
+                'expected': 'data/security/system/users/user/roles'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/groups/b206a1900310484f8a9504754c84b067/roles'),
-                'expected': 'service/identity/domains/domain/groups/group/roles'
+                'expected': 'data/security/domains/domain/groups/group/roles'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067/roles'),
-                'expected': 'service/identity/domains/domain/users/user/roles'
+                'expected': 'data/security/domains/domain/users/user/roles'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/domain-name'),
-                'expected': 'service/identity/domains/domain'
+                'expected': 'data/security/domains/domain'
             },
             {
                 'request': fake.create_request(
                     path='/v3/users/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/identity/users/user'
+                'expected': 'data/security/users/user'
             },
             {
                 'request': fake.create_request(
                     path='/v3/users/d062392'),
-                'expected': 'service/identity/users/user'
+                'expected': 'data/security/users/user'
             },
             {
                 'request': fake.create_request(
                     path='/v3/users/b206a1900310484f8a9504754c84b067/groups'),
-                'expected': 'service/identity/users/user/groups'
+                'expected': 'data/security/users/user/groups'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/config/b206a1900310484f8a9504754c84b067/option/default'),
-                'expected': 'service/identity/domains/config/group/option/default'
+                'expected': 'data/security/domains/config/group/option/default'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/config/b206a1900310484f8a9504754c84b067'
                 ),
-                'expected': 'service/identity/domains/domain/config/group'
+                'expected': 'data/security/domains/domain/config/group'
             },
             {
                 'request': fake.create_request(
                     path='/v3/domains/config/b206a1900310484f8a9504754c84b067/default'
                 ),
-                'expected': 'service/identity/domains/config/group/default'
+                'expected': 'data/security/domains/config/group/default'
             },
             {
                 'request': fake.create_request(
                     path='/v3/groups/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/identity/groups/group'
+                'expected': 'data/security/groups/group'
             },
             {
                 'request': fake.create_request(
                     path='/v3/groups/my-group-name'),
-                'expected': 'service/identity/groups/group'
+                'expected': 'data/security/groups/group'
             },
             {
                 'request': fake.create_request(
                     path='/v3/groups/b206a1900310484f8a9504754c84b067/users'),
-                'expected': 'service/identity/groups/group/users'
+                'expected': 'data/security/groups/group/users'
             },
             {
                 'request': fake.create_request(
                     path='/v3/groups/b206a1900310484f8a9504754c84b067/users/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/identity/groups/group/users/user'
+                'expected': 'data/security/groups/group/users/user'
             },
+            {
+                'request': fake.create_request(
+                    path='/v3/limits/model'),
+                'expected': 'data/security/limits/model'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/limits/somelimit'),
+                'expected': 'data/security/limits/limit'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/limits/b206a1900310484f8a9504754c84b067'),
+                'expected': 'data/security/limits/limit'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3'),
+                'expected': 'data/security/versions'
+            },
+            {
+                'request': fake.create_request(
+                    path='/'),
+                'expected': 'data/security/root'
+            }
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
             actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
                 actual,
                 expected,
@@ -389,11 +409,6 @@ class TestKeystone(unittest.TestCase):
 
         for s in stimuli:
             req = fake.create_request(path='auth/tokens', method='POST', body_dict=s.get('body'))
-
-            self.assertEqual(
-                common.determine_cadf_action_from_request(req),
-                taxonomy.ACTION_AUTHENTICATE,
-            )
 
             self.assertEqual(
                 self.watcher.get_project_domain_and_user_id_from_keystone_authentication_request(req),

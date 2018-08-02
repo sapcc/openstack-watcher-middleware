@@ -23,22 +23,15 @@ from webob import Request
 
 from . import common
 from . import errors
-from . import target_type_uri_strategy as ttu
+from . import cadf_strategy as strategies
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
 
-# Map of available strategies to determine the target type URI
+# Map of service types and strategies to determine target type URI and action
+# Usually the base strategy is sufficient
 STRATEGIES = {
-    'object-store': ttu.SwiftTargetTypeURIStrategy,
-    'compute': ttu.NovaTargetTypeURIStrategy,
-    'image': ttu.GlanceTargetTypeURIStrategy,
-    'volume': ttu.CinderTargetTypeURIStrategy,
-    'network': ttu.NeutronTargetTypeURIStrategy,
-    'dns': ttu.DesignateTargetTypeURIStrategy,
-    'identity': ttu.KeystoneTargetTypeURIStrategy,
-    'share': ttu.ManilaTargetTypeURIStrategy,
-    'baremetal': ttu.IronicTargetTypeURIStrategy
+    'object-store': strategies.SwiftCADFStrategy
 }
 
 
@@ -60,7 +53,6 @@ class OpenStackWatcherMiddleware(object):
         self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('target_project_id_from_path', 'False'))
         self.is_project_id_from_service_catalog = common.string_to_bool(
             self.wsgi_config.get('target_project_id_from_service_catalog', 'False'))
-        self.prefix = self.cadf_service_name or 'service/{0}'.format(self.service_type)
 
         config_file_path = config.get('config_file', None)
         if config_file_path:
@@ -69,19 +61,34 @@ class OpenStackWatcherMiddleware(object):
             except errors.ConfigError as e:
                 self.logger.warning("custom actions not available: %s", str(e))
 
-        self.custom_action_config = self.watcher_config.get('custom_actions', {})
+        custom_action_config = self.watcher_config.get('custom_actions', {})
+        path_keywords = self.watcher_config.get('path_keywords', {})
+        keyword_exclusions = self.watcher_config.get('keyword_exclusions', {})
+        regex_mapping = self.watcher_config.get('regex_path_mapping', {})
 
-        # init strategy used to determine target type URI
+        # init the strategy used to determine the target type uri
         strat = STRATEGIES.get(
             self.service_type,
-            ttu.TargetTypeURIStrategy
+            strategies.BaseCADFStrategy
         )
-        strategy = strat()
-        strategy.name = self.service_type
-        strategy.logger = self.logger
 
-        if self.prefix and not strategy.prefix:
-            strategy.prefix = self.prefix
+        # set custom prefix to target type URI or use defaults
+        target_type_uri_prefix = common.SERVICE_TYPE_CADF_PREFIX_MAP.get(
+            self.service_type,
+            'service/{0}'.format(self.service_type)
+        )
+
+        if self.cadf_service_name:
+            target_type_uri_prefix = self.cadf_service_name
+
+        strategy = strat(
+            target_type_uri_prefix=target_type_uri_prefix,
+            path_keywords=path_keywords,
+            keyword_exclusions=keyword_exclusions,
+            custom_action_config=custom_action_config,
+            regex_mapping=regex_mapping
+        )
+
         self.strategy = strategy
 
         self.metric_client = DogStatsd(
@@ -132,7 +139,7 @@ class OpenStackWatcherMiddleware(object):
         target_type_uri = self.determine_target_type_uri(req)
 
         # determine cadf_action for request. consider custom action config.
-        cadf_action = self.determine_cadf_action(self.custom_action_config, target_type_uri, req)
+        cadf_action = self.determine_cadf_action(req, target_type_uri)
 
         # if authentication request consider project, domain and user in body
         if self.service_type == 'identity' and cadf_action == taxonomy.ACTION_AUTHENTICATE:
@@ -227,8 +234,8 @@ class OpenStackWatcherMiddleware(object):
         """
         project_uid = taxonomy.UNKNOWN
         try:
-            if common.is_swift_request(path):
-                project_uid = common.get_swift_project_id_from_path(path)
+            if common.is_swift_request(path) and self.strategy.name == 'object-store':
+                project_uid = self.strategy.get_swift_project_id_from_path(path)
             else:
                 project_uid = common.get_project_id_from_os_path()
         finally:
@@ -295,8 +302,8 @@ class OpenStackWatcherMiddleware(object):
                 if not url or not type:
                     continue
 
-                if self.service_type == 'object-store':
-                    project_id = common.get_swift_project_id_from_path(url)
+                if self.strategy.name == 'object-store':
+                    project_id = self.strategy.get_swift_project_id_from_path(url)
                 else:
                     project_id = common.get_project_id_from_os_path(url)
 
@@ -344,7 +351,11 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: account uid, container name or unknown
         """
-        account_id, container_id, _ = common.get_swift_account_container_object_id_from_path(req.path)
+        # break here if we don't have the object-store strategy
+        if self.strategy.name != 'object-store':
+            return taxonomy.UNKNOWN, taxonomy.UNKNOWN
+
+        account_id, container_id, _ = self.strategy.get_swift_account_container_object_id_from_path(req.path)
         return account_id, container_id
 
     def determine_target_type_uri(self, req):
@@ -354,10 +365,12 @@ class OpenStackWatcherMiddleware(object):
         :param req: the request
         :return: the target type uri or taxonomy.UNKNOWN
         """
-        self.logger.debug("selected strategy '{0}' to determine target.type_uri".format(self.strategy.name))
-        return self.strategy.determine_target_type_uri(req)
+        target_type_uri = self.strategy.determine_target_type_uri(req)
+        self.logger.debug("target type URI of requests '{0} {1}' is '{2}'"
+                          .format(req.method, req.path, target_type_uri))
+        return target_type_uri
 
-    def determine_cadf_action(self, custom_action_config, target_type_uri, req):
+    def determine_cadf_action(self, req, target_type_uri=None):
         """
         attempts to determine the cadf action for a request in the following order:
         (1) return custom action if one is configured
@@ -365,40 +378,13 @@ class OpenStackWatcherMiddleware(object):
         (3) return action based on request method
 
         :param custom_action_config: configuration of custom actions
-        :param target_type_uri: the target.type_uri
+        :param target_type_uri: the target type URI
         :param req: the request
         :return: the cadf action or unknown
         """
-        # determine action as per custom action configuration
-        cadf_action = taxonomy.UNKNOWN
-        os_action = None
-        try:
-            if common.is_action_request(req):
-                os_action = common.determine_openstack_action_from_request(req)
-
-            # search custom action configuration
-            cadf_action = common.determine_custom_cadf_action(
-                config=custom_action_config,
-                target_type_uri=target_type_uri,
-                method=req.method,
-                os_action=os_action,
-                prefix=self.prefix
-            )
-            self.logger.debug("custom action for {0} {1}: {2},".format(req.method, req.path, cadf_action))
-
-            # if action request and cadf action still unknown, attempt to convert from os-action
-            if os_action and cadf_action == taxonomy.UNKNOWN:
-                cadf_action = common.openstack_action_to_cadf_action(os_action)
-
-            # if still unknown, determine cadf action based on HTTP method (and path for authentication req)
-            if cadf_action == taxonomy.UNKNOWN:
-                cadf_action = common.determine_cadf_action_from_request(req)
-
-        except Exception as e:
-            self.logger.warning('unable to determine cadf action: {}'.format(str(e)))
-
-        finally:
-            return cadf_action
+        cadf_action = self.strategy.determine_cadf_action(req, target_type_uri)
+        self.logger.debug("cadf action for '{0} {1}' is '{2}'".format(req.method, req.path, cadf_action))
+        return cadf_action
 
 
 def load_config(config_path):
