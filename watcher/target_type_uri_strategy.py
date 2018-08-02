@@ -222,10 +222,14 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-volume_attachments': 'attachment',
             'entries': 'entry'
         }
+        regex_mapping = {
+            'flavors/[^/]*$': 'flavors/flavor',
+        }
         super(NovaTargetTypeURIStrategy, self).__init__(
             name='nova',
             prefix='service/compute',
-            mapping=mapping
+            mapping=mapping,
+            regex_mapping=regex_mapping
         )
 
 
@@ -336,7 +340,15 @@ class ManilaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-share-unmanage': 'share'
         }
         regex_mapping = {
-            '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/[^/]*': 'tenant'
+            '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/[^/]*': 'tenant',
+            'shares/(?!detail)[^/]*$': 'shares/share',
+            'share-groups/[^/]*$': 'share-groups/share-group',
+            'share-instances/[^/]*$': 'share-instances/share-instance',
+            'share-group-types/[^/]*$': 'share-group-types/share-group-type',
+            'os-share-unmanage/[^/]*$': 'os-share-unmanage/share',
+            'security-services/[^/]*$': 'security-services/security-service',
+            'extra_specs/[^/]*$': 'extra_specs/key',
+            'export_locations/[^/]*$': 'export_locations/export_location'
         }
         super(ManilaTargetTypeURIStrategy, self).__init__(
             name='manila',

@@ -179,16 +179,23 @@ class TestCinder(unittest.TestCase):
                     path='/v2/b206a1900310484f8a9504754c84b067/os-share-unmanage/b206a1900310484f8a9504754c84b067/unmanage'
                 ),
                 'expected': 'service/storage/share/tenant/os-share-unmanage/share/unmanage'
-            }
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/share-group-types/foobar'
+                ),
+                'expected': 'service/storage/share/tenant/share-group-types/share-group-type'
+            },
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0}' should be '{1}' but got '{2}'".format(req, expected, actual)
             )
 
 

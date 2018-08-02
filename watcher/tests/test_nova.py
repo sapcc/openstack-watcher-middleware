@@ -124,6 +124,24 @@ class TestNova(unittest.TestCase):
                 "cadf action for '{0}' should be '{1}'".format(req, expected)
             )
 
+    def test_target_type_uri(self):
+        stimuli = [
+            {
+                'request': fake.create_request(
+                    path='/flavors/myflavorname'),
+                'expected': 'service/compute/flavors/flavor'
+            },
+        ]
+
+        for stim in stimuli:
+            req = stim.get('request')
+            expected = stim.get('expected')
+            self.assertEqual(
+                self.watcher.determine_target_type_uri(req),
+                expected,
+                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
