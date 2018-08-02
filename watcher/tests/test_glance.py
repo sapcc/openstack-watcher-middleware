@@ -2,14 +2,13 @@ import os
 import unittest
 
 import watcher.common as common
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 from . import fake
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-GLANCE_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/glance.yaml'
+GLANCE_CONFIG_PATH = WORKDIR + '/fixtures/glance.yaml'
 
 
 class TestGlance(unittest.TestCase):
@@ -21,59 +20,150 @@ class TestGlance(unittest.TestCase):
         self.watcher = OpenStackWatcherMiddleware(
             fake.FakeApp(),
             config={
-                'service_type': 'image'
+                'service_type': 'image',
+                'config_file': GLANCE_CONFIG_PATH
             }
         )
         self.is_setup = True
 
     def test_custom_action(self):
-        raw_config = load_config(GLANCE_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the glance config should not be None")
-
         stimuli = [
             {
-                'target_type_uri': 'service/storage/image/images',
+                'request': fake.create_request(
+                    path="/v3/images/b206a1900310484f8a9504754c84b067"
+                ),
+                'expected': 'read'
+            },
+            {
+                'request': fake.create_request(
+                    path="/v3/images/ubuntu16.04"
+                ),
+                'expected': 'read'
+            },
+            {
+                'request': fake.create_request(
+                    path="/v3/images"
+                ),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/storage/image/shared-images/member',
+                'request': fake.create_request(
+                    path="/v2/images/myimage/actions/deactivate",
+                    method='POST'
+                ),
+                'expected': 'create'
+            },
+            {
+                'request': fake.create_request(
+                    path="/v2/images/foobuntu/members"
+                ),
                 'expected': 'read/list'
             },
             {
-                'target_type_uri': 'service/storage/image/images/image/members',
-                'method': 'POST',
-                'expected': 'update'
+                'request': fake.create_request(
+                    path="/v2/images/foobuntu/tags/bm",
+                    method='DELETE'
+                ),
+                'expected': 'delete'
+            },
+            {
+                'request': fake.create_request(
+                    path="/v2/schemas/images"
+                ),
+                'expected': 'read/list'
+            },
+            {
+                'request': fake.create_request(
+                    path="/v2/images/ubuntu10.10/file"
+                ),
+                'expected': 'read'
             }
         ]
 
         for s in stimuli:
-            target_type_uri = s.get('target_type_uri')
-            method = s.get('method', 'GET')
-            os_action = s.get('os_action')
+            req = s.get('request')
             expected = s.get('expected')
+            actual = self.watcher.determine_cadf_action(req)
+
             self.assertEqual(
-                common.determine_custom_cadf_action( config,target_type_uri, method, os_action,),
+                actual,
                 expected,
-                "cadf action for '{0} {1} {2}' should be '{3}'".format(method, target_type_uri, os_action, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
             {
-                'request': fake.create_request(path='/v3/images/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/image/images/image'
+                'request': fake.create_request(path='/v2/tasks'),
+                'expected': 'service/storage/image/tasks'
+            },
+            {
+                'request': fake.create_request(path='/v2/schemas/tasks'),
+                'expected': 'service/storage/image/schemas/tasks'
+            },
+            {
+                'request': fake.create_request(path='/v2/schemas/task'),
+                'expected': 'service/storage/image/schemas/task'
+            },
+            {
+                'request': fake.create_request(path='/v2/images/ubuntu16.04/actions/deactivate'),
+                'expected': 'service/storage/image/images/image/actions/deactivate'
+            },
+            {
+                'request': fake.create_request(path='/v2/images/coreos/actions/reactivate'),
+                'expected': 'service/storage/image/images/image/actions/reactivate'
             },
             {
                 'request': fake.create_request(path='/v3/images/ubuntu16.04'),
                 'expected': 'service/storage/image/images/image'
             },
+            {
+                'request': fake.create_request(path='/v2/images/hase/members/myself'),
+                'expected': 'service/storage/image/images/image/members/member'
+            },
+            {
+                'request': fake.create_request(path='/v2/images/debian/tags/virtual'),
+                'expected': 'service/storage/image/images/image/tags/tag'
+            },
+            {
+                'request': fake.create_request(path='/v2/schemas/members'),
+                'expected': 'service/storage/image/schemas/members'
+            },
+            {
+                'request': fake.create_request(path='/v2/schemas/member'),
+                'expected': 'service/storage/image/schemas/member'
+            },
+            {
+                'request': fake.create_request(path='/v2/images/alpine/file'),
+                'expected': 'service/storage/image/images/image/file'
+            },
+            {
+                'request': fake.create_request(path='/v2/images/macos/stage'),
+                'expected': 'service/storage/image/images/image/stage'
+            },
+            {
+                'request': fake.create_request(path='/v2/info/import'),
+                'expected': 'service/storage/image/info/import'
+            },
+            {
+                'request': fake.create_request(path='/v2/info/stores'),
+                'expected': 'service/storage/image/info/stores'
+            },
+            {
+                'request': fake.create_request(path='/v2/tasks/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/image/tasks/task'
+            },
+            {
+                'request': fake.create_request(path='/v2/schemas/tasks'),
+                'expected': 'service/storage/image/schemas/tasks'
+            }
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
             actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
                 actual,
                 expected,

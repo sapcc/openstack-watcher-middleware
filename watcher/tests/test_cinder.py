@@ -1,15 +1,12 @@
 import os
 import unittest
 
-from webob import Request
-
 from . import fake
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-CINDER_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/cinder.yaml'
+CINDER_CONFIG_PATH = WORKDIR + '/fixtures/cinder.yaml'
 
 
 class TestCinder(unittest.TestCase):
@@ -18,16 +15,25 @@ class TestCinder(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
-        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {})
-        self.watcher.service_type = 'volume'
-        self.watcher.cadf_service_name = 'service/storage/block'
+        self.watcher = OpenStackWatcherMiddleware(
+            fake.FakeApp(),
+            {
+                'service_type': 'volume',
+                'config_file': CINDER_CONFIG_PATH
+            }
+        )
         self.is_setup = True
 
-    def test_cadf_action(self):
-        raw_config = load_config(CINDER_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the cinder config should not be None")
+    def test_prefix(self):
+        actual = self.watcher.strategy.target_type_uri_prefix
+        expected = 'service/storage/block'
+        self.assertEqual(
+            actual,
+            expected,
+            "service type is volume, hence the prefix should be '{0}' but got '{1}'".format(expected, actual)
+        )
 
+    def test_cadf_action(self):
         stimuli = [
             {
                 'request': fake.create_request(
@@ -79,7 +85,7 @@ class TestCinder(unittest.TestCase):
                     method='POST',
                     body_dict={'os-reset_status': {'status': 'available'}}
                 ),
-                'expected': 'update/reset_status'
+                'expected': 'update/os-reset_status'
             },
             {
                 'request': fake.create_request(
@@ -95,7 +101,7 @@ class TestCinder(unittest.TestCase):
                     method='POST',
                     body_dict={'os-force_delete': {}}
                 ),
-                'expected': 'update/force_delete'
+                'expected': 'update/os-force_delete'
             },
             {
                 'request': fake.create_request(
@@ -116,122 +122,122 @@ class TestCinder(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown', "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067'),
                 'expected': 'service/storage/block/types/type'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/extra_specs/somekey'),
-                'expected': 'service/storage/block/types/type/extra_specs/key'
+                'expected': 'service/storage/block/types/type/extra_specs/extra_spec'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/encryption/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/block/types/type/encryption/key'
+                'expected': 'service/storage/block/types/type/encryption/encryption'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/types/b206a1900310484f8a9504754c84b067/os-volume-type-access'),
                 'expected': 'service/storage/block/types/type/os-volume-type-access'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/volumes/b206a1900310484f8a9504754c84b067/metadata/somename'),
                 'expected': 'service/storage/block/volumes/volume/metadata/key'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/snapshots/b206a1900310484f8a9504754c84b067/metadata/b206a1900310484f8a9504754c84b067'),
                 'expected': 'service/storage/block/snapshots/snapshot/metadata/key'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/os-volume-transfer/b206a1900310484f8a9504754c84b067/accept'),
-                'expected': 'service/storage/block/os-volume-transfer/transfer/accept'
+                'expected': 'service/storage/block/os-volume-transfer/os-volume-transfer/accept'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/os-volume-transfer/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/block/os-volume-transfer/transfer'
+                'expected': 'service/storage/block/os-volume-transfer/os-volume-transfer'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/attachments/b206a1900310484f8a9504754c84b067/action'),
                 'expected': 'service/storage/block/attachments/attachment/action'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/capabilities/somehostname'),
-                'expected': 'service/storage/block/capabilities/host'
+                'expected': 'service/storage/block/capabilities/capability'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/consistencygroups/b206a1900310484f8a9504754c84b067/delete'),
                 'expected': 'service/storage/block/consistencygroups/consistencygroup/delete'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/cgsnapshots/b206a1900310484f8a9504754c84b067'),
                 'expected': 'service/storage/block/cgsnapshots/cgsnapshot'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/group_snapshots/b206a1900310484f8a9504754c84b067/action'),
-                'expected': 'service/storage/block/group_snapshots/snapshot/action'
+                'expected': 'service/storage/block/group_snapshots/group_snapshot/action'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/group_types/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/block/group_types/type'
+                'expected': 'service/storage/block/group_types/group_type'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/group_types/b206a1900310484f8a9504754c84b067/group_specs/b206a1900310484f8a9504754c84b067'),
-                'expected': 'service/storage/block/group_types/type/group_specs/spec'
+                'expected': 'service/storage/block/group_types/group_type/group_specs/group_spec'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/os-hosts/somehostname'),
-                'expected': 'service/storage/block/os-hosts/host'
+                'expected': 'service/storage/block/os-hosts/os-host'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/qos-specs/b206a1900310484f8a9504754c84b067/disassociate_all'),
-                'expected': 'service/storage/block/qos-specs/spec/disassociate_all'
+                'expected': 'service/storage/block/qos-specs/qos-spec/disassociate_all'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/os-quota-class-sets/quotaclassname'),
-                'expected': 'service/storage/block/os-quota-class-sets/class'
+                'expected': 'service/storage/block/os-quota-class-sets/os-quota-class-set'
             },
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v3/b206a1900310484f8a9504754c84b067/os-quota-sets/b206a1900310484f8a9504754c84b067/defaults'),
-                'expected': 'service/storage/block/os-quota-sets/quota/defaults'
+                'expected': 'service/storage/block/os-quota-sets/os-quota-set/defaults'
             }
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
 

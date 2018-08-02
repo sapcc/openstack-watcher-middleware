@@ -12,12 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import six
 import unittest
 
 from pycadf import cadftaxonomy as taxonomy
-from webob import Request
 
 import watcher.common as common
 
@@ -57,110 +55,16 @@ class TestCommon(unittest.TestCase):
                 expected
             )
 
-    def test_split_prefix_target_type_uri(self):
+    def test_trim_prefix(self):
         self.assertEqual(
-            common.split_prefix_target_type_uri('service/storage/object/account/container', 'service/storage/object'),
+            common.trim_prefix('service/storage/object/account/container', 'service/storage/object'),
             'account/container'
         )
 
         self.assertEqual(
-            common.split_prefix_target_type_uri('service/compute/servers/action', 'service/foobar'),
+            common.trim_prefix('service/compute/servers/action', 'service/foobar'),
             'service/compute/servers/action'
         )
-
-    def test_custom_action_swift(self):
-        config = {
-            'account': [
-                {
-                    'method': 'GET',
-                    'action_type': 'read/list'
-                },
-                {
-                    'method': 'POST',
-                    'action_type': 'update'
-                },
-                {
-                    'container': [
-                        {
-                            'method': 'GET',
-                            'action_type': 'read/list'
-                        },
-                        {
-                            'method': 'POST',
-                            'action_type': 'update'
-                        },
-                        {
-                          'method': 'HEAD',
-                          'action_type': 'read',
-                        },
-                        {
-                            'object': [
-                                {
-                                    'method': 'POST',
-                                    'action_type': 'update'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-
-        stimuli = [
-            {
-                'method': 'GET',
-                'target_type_uri': 'service/storage/object/account',
-                'expected': 'read/list',
-                'help': "the custom action of 'GET /account' should be 'read/list'"
-            },
-            {
-                'method': 'HEAD',
-                'target_type_uri': 'service/storage/object/account',
-                'expected': 'unknown',
-                'help': "the custom action of 'HEAD /account' should be 'unknown'"
-            },
-            {
-                'method': 'POST',
-                'target_type_uri': 'service/storage/object/account',
-                'expected': 'update',
-                'help': "the custom action of 'POST /account' should be 'update'"
-            },
-            {
-                'method': 'GET',
-                'target_type_uri': 'service/storage/object/account/container',
-                'expected': 'read/list',
-                'help': "the custom action of 'GET /account/container' should be 'read/list'"
-            },
-            {
-                'method': 'HEAD',
-                'target_type_uri': 'service/storage/object/account/container',
-                'expected': 'read',
-                'help': "the custom action of 'HEAD /account/container' should be 'read'"
-            },
-            {
-                'method': 'POST',
-                'target_type_uri': 'service/storage/object/account/container',
-                'expected': 'update',
-                'help': "the custom action of 'POST /account/container' should be 'update'"
-            },
-            {
-                'method': 'POST',
-                'target_type_uri': 'service/object/account/container/object',
-                'expected': 'update',
-                'help': "the custom action of 'POST /account/container/object' should be 'update'"
-            }
-        ]
-
-        for s in stimuli:
-            target_type_uri = s.get('target_type_uri')
-            method = s.get('method')
-            custom_action = common.determine_custom_cadf_action(config, target_type_uri, method, prefix='service/storage/object')
-
-            self.assertEqual(
-                custom_action,
-                s.get('expected'),
-                s.get('help')
-            )
 
     def test_get_project_id_from_path(self):
         stimuli = [
@@ -177,49 +81,6 @@ class TestCommon(unittest.TestCase):
                 stim.get('expected'),
                 stim.get('help')
             )
-
-    def test_get_swift_project_id_from_path(self):
-        stimuli = [
-            {
-                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132',
-                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
-                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
-            },
-            {
-                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container',
-                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
-                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
-            },
-            {
-                'path': '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container/object',
-                'expected': 'e9141fb24eee4b3e9f25ae69cda31132',
-                'help': "path '/v1/AUTH_e9141fb24eee4b3e9f25ae69cda31132/container/object' contains the project id 'e9141fb24eee4b3e9f25ae69cda31132'"
-            },
-            {
-                'path': 'v1/foo/bar',
-                'expected': taxonomy.UNKNOWN,
-                'help': "'v1/foo/bar' does not contain a swift project id"
-            }
-        ]
-
-        for stim in stimuli:
-            self.assertEqual(
-                common.get_swift_project_id_from_path(stim.get('path')),
-                stim.get('expected'),
-                stim.get('help')
-            )
-
-    def test_determine_openstack_action_from_request(self):
-        req = Request.blank(path='/v2.1/servers/0123456789abcdef0123456789abcdef/action')
-        req.method = 'POST'
-        req.content_type = 'application/json'
-        req.json_body = json.dumps({'removeSecurityGroup': {'name': 'test'}})
-
-        self.assertEqual(
-            common.determine_openstack_action_from_request(req),
-            'removeSecurityGroup'
-        )
-
 
 
 if __name__ == '__main__':

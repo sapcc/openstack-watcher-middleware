@@ -9,7 +9,7 @@ from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-NEUTRON_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/neutron.yaml'
+NEUTRON_CONFIG_PATH = WORKDIR + '/fixtures/neutron.yaml'
 
 
 class TestDesignate(unittest.TestCase):
@@ -20,22 +20,21 @@ class TestDesignate(unittest.TestCase):
             return
         self.watcher = OpenStackWatcherMiddleware(
             fake.FakeApp(),
-            {'service_type': 'network'}
+            {
+                'service_type': 'network',
+                'config_file': NEUTRON_CONFIG_PATH
+            }
         )
         self.is_setup = True
 
     def test_prefix(self):
         self.assertEqual(
-            self.watcher.prefix,
+            self.watcher.strategy.target_type_uri_prefix,
             'service/network',
             "service type is network, hence the prefix should be 'service/network'"
         )
 
     def test_cadf_action(self):
-        raw_config = load_config(NEUTRON_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the neutron config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(path='/v2.0/networks'),
@@ -88,15 +87,12 @@ class TestDesignate(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown',
-                             "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
@@ -119,13 +115,13 @@ class TestDesignate(unittest.TestCase):
                 'request': fake.create_request(
                     path='/v2.0/network-ip-availabilities/b206a1900310484f8a9504754c84b067'
                 ),
-                'expected': 'service/network/network-ip-availabilities/availability'
+                'expected': 'service/network/network-ip-availabilities/network-ip-availability'
             },
             {
                 'request': fake.create_request(
                     path='/v2.0/qos/policies/b206a1900310484f8a9504754c84b067/dscp_marking_rules/b206a1900310484f8a9504754c84b067'
                 ),
-                'expected': 'service/network/qos/policies/policy/dscp_marking_rules/rule'
+                'expected': 'service/network/qos/policies/policy/dscp_marking_rules/dscp_marking_rule'
             },
             {
                 'request': fake.create_request(
@@ -138,16 +134,36 @@ class TestDesignate(unittest.TestCase):
                     path='/v2.0/someresourcetype/b206a1900310484f8a9504754c84b067/tags/tagname'
                 ),
                 'expected': 'service/network/resource_type/resource/tags/tag'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0/floatingips/10.236.38.12'
+                ),
+                'expected': 'service/network/floatingips/floatingip'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0/security-groups/canary_sgrp_qa_de_1b'
+                ),
+                'expected': 'service/network/security-groups/security-group'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.0/networks/private_datapath_network'
+                ),
+                'expected': 'service/network/networks/network'
             }
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
 
