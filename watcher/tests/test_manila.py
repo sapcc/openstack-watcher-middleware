@@ -2,15 +2,14 @@ import os
 import unittest
 
 from . import fake
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-MANILA_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/manila.yaml'
+MANILA_CONFIG_PATH = WORKDIR + '/fixtures/manila.yaml'
 
 
-class TestManily(unittest.TestCase):
+class TestManila(unittest.TestCase):
     is_setup = False
 
     def setUp(self):
@@ -20,14 +19,12 @@ class TestManily(unittest.TestCase):
             fake.FakeApp(),
             config={
                 'service_type': 'share',
+                'config_file': MANILA_CONFIG_PATH
             }
         )
         self.is_setup = True
 
     def test_cadf_action(self):
-        raw_config = load_config(MANILA_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the manila config should not be None")
 
         stimuli = [
             {
@@ -58,7 +55,7 @@ class TestManily(unittest.TestCase):
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/export_locations'
                 ),
-                'expected': 'read/list'
+                'expected': 'foobar'
             },
             {
                 'request': fake.create_request(
@@ -96,14 +93,12 @@ class TestManily(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown', "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
@@ -140,12 +135,30 @@ class TestManily(unittest.TestCase):
             },
             {
                 'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/shares/hasse/export_locations/b206a1900310484f8a9504754c84b067'),
+                'expected': 'service/storage/share/shares/share/export_locations/export_location'
+            },
+            {
+                'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/metadata/b206a1900310484f8a9504754c84b067'),
                 'expected': 'service/storage/share/shares/share/metadata/key'
             },
             {
                 'request': fake.create_request(
                     path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/action',
+                    body_dict={
+                        "allow_access": {
+                            "access_level": "rw",
+                            "access_type": "ip",
+                            "access_to": "0.0.0.0/0"
+                        }
+                    }
+                ),
+                'expected': 'service/storage/share/shares/share/action'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/shares/hase/action',
                     body_dict={
                         "allow_access": {
                             "access_level": "rw",
@@ -186,6 +199,18 @@ class TestManily(unittest.TestCase):
                 ),
                 'expected': 'service/storage/share/share-group-types/share-group-type'
             },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/shares/manage'
+                ),
+                'expected': 'service/storage/share/shares/manage'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/scheduler-stats/pools'
+                ),
+                'expected': 'service/storage/share/scheduler-stats/pools'
+            },
         ]
 
         for stim in stimuli:
@@ -195,7 +220,7 @@ class TestManily(unittest.TestCase):
             self.assertEqual(
                 actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}' but got '{2}'".format(req, expected, actual)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
 

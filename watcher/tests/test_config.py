@@ -97,19 +97,11 @@ class MyTestCase(unittest.TestCase):
         expected = {
             'account': [
                 {
-                    'method': 'GET',
-                    'action_type': 'read/list'
-                },
-                {
                     'method': 'POST',
                     'action_type': 'update'
                 },
                 {
                     'container': [
-                        {
-                            'method': 'GET',
-                            'action_type': 'read/list'
-                        },
                         {
                             'method': 'POST',
                             'action_type': 'update'
@@ -123,12 +115,6 @@ class MyTestCase(unittest.TestCase):
                             ]
                         }
                     ]
-                }
-            ],
-            'endpoints': [
-                {
-                    'method': 'GET',
-                    'action_type': 'read/list'
                 }
             ]
         }

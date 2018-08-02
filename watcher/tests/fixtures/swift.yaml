@@ -1,20 +1,17 @@
+path_keywords:
+  - account
+  - container
+  - endpoints
+
 custom_actions:
   account:
-    - method: GET
-      action_type: 'read/list'
     - method: POST
       action_type: 'update'
 
     - container:
-        - method: GET
-          action_type: 'read/list'
         - method: POST
           action_type: 'update'
 
         - object:
             - method: POST
               action_type: 'update'
-
-  endpoints:
-    - method: GET
-      action_type: 'read/list'

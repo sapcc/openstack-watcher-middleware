@@ -1,15 +1,12 @@
 import os
 import unittest
 
-from webob import Request
-
 from . import fake
-from watcher.watcher import load_config
 from watcher.watcher import OpenStackWatcherMiddleware
 
 
 WORKDIR = os.path.dirname(os.path.realpath(__file__))
-DESIGNATE_COMPLEX_CONFIG_PATH = WORKDIR + '/fixtures/designate.yaml'
+DESIGNATE_CONFIG_PATH = WORKDIR + '/fixtures/designate.yaml'
 
 
 class TestDesignate(unittest.TestCase):
@@ -18,21 +15,23 @@ class TestDesignate(unittest.TestCase):
     def setUp(self):
         if self.is_setup:
             return
-        self.watcher = OpenStackWatcherMiddleware(fake.FakeApp(), {'service_type': 'dns'})
+        self.watcher = OpenStackWatcherMiddleware(
+            fake.FakeApp(),
+            {
+                'service_type': 'dns',
+                'config_file': DESIGNATE_CONFIG_PATH
+            }
+        )
         self.is_setup = True
 
     def test_prefix(self):
         self.assertEqual(
-            self.watcher.prefix,
+            self.watcher.strategy.target_type_uri_prefix,
             'service/dns',
             "service type is dns, hence the prefix should be 'service/dns'"
         )
 
     def test_cadf_action(self):
-        raw_config = load_config(DESIGNATE_COMPLEX_CONFIG_PATH)
-        config = raw_config.get('custom_actions', None)
-        self.assertIsNotNone(config, "the designate config should not be None")
-
         stimuli = [
             {
                 'request': fake.create_request(
@@ -89,21 +88,18 @@ class TestDesignate(unittest.TestCase):
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
-            target_type_uri = self.watcher.determine_target_type_uri(req)
-            self.assertIsNotNone(target_type_uri, 'target.type_uri for req {0} must not be None'.format(req))
-            self.assertIsNot(target_type_uri, 'unknown',
-                             "target.type_uri for req {0} must not be 'unknown'".format(req))
+            actual = self.watcher.determine_cadf_action(req)
 
             self.assertEqual(
-                self.watcher.determine_cadf_action(config, target_type_uri, req),
+                actual,
                 expected,
-                "cadf action for '{0} {1}' should be '{2}'".format(req.method, target_type_uri, expected)
+                "cadf action for '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
     def test_target_type_uri(self):
         stimuli = [
             {
-                'request': Request.blank(
+                'request': fake.create_request(
                     path='/v2/zones'),
                 'expected': 'service/dns/zones'
             },
@@ -130,16 +126,66 @@ class TestDesignate(unittest.TestCase):
                     path='/v2/zones/b206a1900310484f8a9504754c84b067/recordsets/b206a1900310484f8a9504754c84b067'
                 ),
                 'expected': 'service/dns/zones/zone/recordsets/recordset'
-            }
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/zones/myzone/recordsets/myrecordset'
+                ),
+                'expected': 'service/dns/zones/zone/recordsets/recordset'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/zones/tasks/imports/myzone'
+                ),
+                'expected': 'service/dns/zones/tasks/imports/import'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/zones/zone_id/tasks/export'
+                ),
+                'expected': 'service/dns/zones/zone/tasks/export'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/zones/tasks/exports/export'
+                ),
+                'expected': 'service/dns/zones/tasks/exports/export'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/zones/tasks/exports/foobar/export'
+                ),
+                'expected': 'service/dns/zones/tasks/exports/export/export'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2'
+                ),
+                'expected': 'service/dns/versions'
+            },
+            {
+                'request': fake.create_request(
+                    path='/'
+                ),
+                'expected': 'service/dns/root'
+            },
+            {
+                'request': fake.create_request(
+                    path=''
+                ),
+                'expected': 'service/dns/root'
+            },
         ]
 
         for stim in stimuli:
             req = stim.get('request')
             expected = stim.get('expected')
+            actual = self.watcher.determine_target_type_uri(req)
+
             self.assertEqual(
-                self.watcher.determine_target_type_uri(req),
+                actual,
                 expected,
-                "target_type_uri of '{0}' should be '{1}'".format(req, expected)
+                "target_type_uri of '{0} {1}' should be '{2}' but got '{3}'".format(req.method, req.path, expected, actual)
             )
 
 
