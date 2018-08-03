@@ -223,7 +223,7 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'entries': 'entry'
         }
         regex_mapping = {
-            'flavors/[^/]*$': 'flavors/flavor',
+            'flavors/[^/|$]+': 'flavors/flavor',
         }
         super(NovaTargetTypeURIStrategy, self).__init__(
             name='nova',
@@ -241,7 +241,7 @@ class GlanceTargetTypeURIStrategy(TargetTypeURIStrategy):
             'tags': 'tag',
         }
         regex_mapping = {
-            'images/[^/]*$': 'images/image',
+            'images/[^/|$]+': 'images/image',
         }
         super(GlanceTargetTypeURIStrategy, self).__init__(
             name='glance',
@@ -320,7 +320,7 @@ class KeystoneTargetTypeURIStrategy(TargetTypeURIStrategy):
             'domains/\S+/config/[0-9a-zA-Z_]+/[0-9a-zA-Z_]+$': 'domains/domain/config/group/option',
             'domains/\S+/config/[0-9a-zA-Z_]+$': 'domains/domain/config/group',
             'domains/[^/]*$': 'domains/domain',
-            'regions/\S+': 'regions/region',
+            'regions/[^/]*$': 'regions/region',
             'projects/[^/]*$': 'projects/project',
             'projects/[0-9a-zA-Z_]+/tags/[^/]*$': 'projects/project/tags/tag',
             'users/[^/]*$': 'users/user',
@@ -340,14 +340,14 @@ class ManilaTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-share-unmanage': 'share'
         }
         regex_mapping = {
-            'shares/(?!detail)[^/]*$': 'shares/share',
-            'share-groups/[^/]*$': 'share-groups/share-group',
-            'share-instances/[^/]*$': 'share-instances/share-instance',
-            'share-group-types/[^/]*$': 'share-group-types/share-group-type',
-            'os-share-unmanage/[^/]*$': 'os-share-unmanage/share',
-            'security-services/[^/]*$': 'security-services/security-service',
-            'extra_specs/[^/]*$': 'extra_specs/key',
-            'export_locations/[^/]*$': 'export_locations/export_location'
+            'shares/(?!detail)[^/|$]+': 'shares/share',
+            'share-groups/[^/|$]+': 'share-groups/share-group',
+            'share-instances/[^/|$]+': 'share-instances/share-instance',
+            'share-group-types/[^/|$]+': 'share-group-types/share-group-type',
+            'os-share-unmanage/[^/|$]+': 'os-share-unmanage/share',
+            'security-services/[^/|$]+': 'security-services/security-service',
+            'extra_specs/[^/|$]+': 'extra_specs/key',
+            'export_locations/[^/|$]+': 'export_locations/export_location'
         }
         super(ManilaTargetTypeURIStrategy, self).__init__(
             name='manila',

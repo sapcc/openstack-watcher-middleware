@@ -139,6 +139,16 @@ class TestNova(unittest.TestCase):
                     path='/flavors/0123456789abcdef0123456789abcdef'),
                 'expected': 'service/compute/flavors/flavor'
             },
+            {
+                'request': fake.create_request(
+                    path='/flavors/0123456789abcdef0123456789abcdef/os-extra_specs'),
+                'expected': 'service/compute/flavors/flavor/os-extra_specs'
+            },
+            {
+                'request': fake.create_request(
+                    path='flavors/60/os-extra_specs'),
+                'expected': 'service/compute/flavors/flavor/os-extra_specs'
+            },
         ]
 
         for stim in stimuli:
