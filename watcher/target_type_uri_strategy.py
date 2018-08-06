@@ -294,7 +294,10 @@ class NeutronTargetTypeURIStrategy(TargetTypeURIStrategy):
         }
         regex_mapping = {
             'v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags$': 'resource_type/resource/tags',
-            'v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)': 'resource_type/resource/tags/tag'
+            'v(?:\d+\.)?(?:\d+\.)?(\*|\d+)/\S+/\S+/tags/\S+(\/+?|$)': 'resource_type/resource/tags/tag',
+            'security-groups/[^/|$]+': 'security-groups/security-group',
+            'networks/[^/|$]+': 'networks/network',
+            'floatingips/[^/|$]+': 'floatingips/floatingip'
         }
         super(NeutronTargetTypeURIStrategy, self).__init__(
             name='nova',
