@@ -224,6 +224,7 @@ class NovaTargetTypeURIStrategy(TargetTypeURIStrategy):
         }
         regex_mapping = {
             'flavors/[^/|$]+': 'flavors/flavor',
+            'servers/[^/|$]+': 'servers/server',
         }
         super(NovaTargetTypeURIStrategy, self).__init__(
             name='nova',
@@ -267,10 +268,14 @@ class CinderTargetTypeURIStrategy(TargetTypeURIStrategy):
             'os-quota-class-sets': 'class',
             'os-quota-sets': 'quota',
         }
+        regex_mapping = {
+            'volumes/[^/|$]+': 'volumes/volume',
+        }
         super(CinderTargetTypeURIStrategy, self).__init__(
             name='cinder',
             prefix='service/storage/block',
-            mapping=mapping
+            mapping=mapping,
+            regex_mapping=regex_mapping
         )
 
 
