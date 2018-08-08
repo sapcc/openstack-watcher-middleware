@@ -59,7 +59,7 @@ class OpenStackWatcherMiddleware(object):
             try:
                 self.watcher_config = load_config(config_file_path)
             except errors.ConfigError as e:
-                self.logger.warning("custom actions not available: %s", str(e))
+                self.logger.debug("custom actions not available: %s", str(e))
 
         custom_action_config = self.watcher_config.get('custom_actions', {})
         path_keywords = self.watcher_config.get('path_keywords', {})
@@ -204,7 +204,7 @@ class OpenStackWatcherMiddleware(object):
                 self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
                 self.metric_client.increment('api_requests_total', tags=labels)
             except Exception as e:
-                self.logger.info("failed to submit metrics for %s: %s" % (str(labels), str(e)))
+                self.logger.debug("failed to submit metrics for %s: %s" % (str(labels), str(e)))
             finally:
                 self.metric_client.close_buffer()
 
@@ -340,7 +340,7 @@ class OpenStackWatcherMiddleware(object):
             domain_id = common.find_domain_id_in_auth_dict(json_body_dict)
             user_id = common.find_user_id_in_auth_dict(json_body_dict)
         except ValueError as e:
-            self.logger.warning('unable to read request body: ', str(e))
+            self.logger.debug('unable to read request body: ', str(e))
         finally:
             return project_id, domain_id, user_id
 

@@ -12,7 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import logging
 import re
 import six
@@ -122,12 +121,13 @@ class BaseCADFStrategy(object):
                 target_type_uri = self._determine_target_type_uri_by_parts(path.split('/'))
 
         except Exception as e:
-            self.logger.warning("exception while determining the target type URI of '{0} {1}': {2}"
-                                .format(req.method, req.path, str(e)))
+            self.logger.debug(
+                "exception while determining the target type URI of '{0} {1}': {2}".format(req.method, req.path, str(e))
+            )
 
         finally:
             if common.is_none_or_unknown(target_type_uri):
-                self.logger.warning("failed to determine target type URI of '{0} {1}'".format(req.method, req.path))
+                self.logger.debug("failed to determine target type URI of '{0} {1}'".format(req.method, req.path))
                 return
 
             return self._add_prefix_target_type_uri(target_type_uri)
@@ -211,16 +211,18 @@ class BaseCADFStrategy(object):
         """
         cadf_action = taxonomy.UNKNOWN
         try:
-            if json_body:
-                d = json.loads(json_body)
-                # the 1st key specifies the action type
-                os_action = next(iter(d))
-                if os_action:
-                    # add prefix to os_action
-                    cadf_action = self.cadf_os_action_prefix + os_action
-                    return
+            if isinstance(json_body, str) or isinstance(json_body, unicode):
+                json_body = common.load_json_dict(json_body)
+            # the 1st key specifies the action type
+            os_action = next(iter(json_body))
+            # avoid empty string '""'
+            if os_action and len(os_action) > 2:
+                # add prefix to os_action
+                cadf_action = self.cadf_os_action_prefix + str(os_action)
+                return
         except Exception as e:
-            self.logger.error("error while determining action from json body: {0}".format(str(e)))
+            self.logger.debug("error while determining action from json body: {0}".format(str(e)))
+
         finally:
             return cadf_action
 
@@ -303,7 +305,7 @@ class BaseCADFStrategy(object):
                     return new_path
 
             except Exception as e:
-                self.logger.warning('failed to apply regex {0} to path: {1}: {2}'.format(regex, path, e))
+                self.logger.debug('failed to apply regex {0} to path: {1}: {2}'.format(regex, path, e))
                 continue
 
         # return 'None' if path is unchanged or new path
@@ -335,7 +337,7 @@ class BaseCADFStrategy(object):
                     target_type_uri.append(part)
 
         except Exception as e:
-            self.logger.warning("failed to get target_type_uri from request path: %s" % str(e))
+            self.logger.debug("failed to get target_type_uri from request path: %s" % str(e))
             target_type_uri = []
         finally:
             # we need at least one part
@@ -485,7 +487,7 @@ class SwiftCADFStrategy(BaseCADFStrategy):
                 target_type_uri.append('object')
 
         except Exception as e:
-            self.logger.error("error while determining target type URI from request '{0} {1}': {2}"
+            self.logger.debug("error while determining target type URI from request '{0} {1}': {2}"
                               .format(req.method, req.path, str(e)))
 
         finally:

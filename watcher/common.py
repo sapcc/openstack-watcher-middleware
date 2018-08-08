@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 import re
 import six
 
@@ -207,3 +208,17 @@ def endswith_version(string):
 
 def string_to_bool(bool_string):
     return bool_string.lower() == 'true'
+
+
+def load_json_dict(json_body):
+    """
+    converts a json body to a dictionary
+
+    :param json_body: the json body of a request might be string, unicode or dict
+    :return: the json body as a dictionary
+    """
+    if isinstance(json_body, str) or isinstance(json_body, unicode):
+        json_body = json.loads(json_body)
+    if isinstance(json_body, dict):
+        return json_body
+    return load_json_dict(json_body)

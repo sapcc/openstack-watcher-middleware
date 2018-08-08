@@ -88,6 +88,20 @@ class TestManila(unittest.TestCase):
                 ),
                 'expected': 'update/unmanage'
             },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/action',
+                    body_dict='{ "access_list": null }'
+                ),
+                'expected': 'update/access_list'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2/b206a1900310484f8a9504754c84b067/shares/b206a1900310484f8a9504754c84b067/action',
+                    body_dict=u'{ "access_list": null }'
+                ),
+                'expected': 'update/access_list'
+            },
         ]
 
         for stim in stimuli:
