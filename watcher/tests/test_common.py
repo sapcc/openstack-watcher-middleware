@@ -14,11 +14,11 @@
 
 import six
 import unittest
-
-from pycadf import cadftaxonomy as taxonomy
+import webob
 
 import watcher.common as common
 
+from . import fake
 
 class TestCommon(unittest.TestCase):
     def test_is_version_string(self):
@@ -81,6 +81,42 @@ class TestCommon(unittest.TestCase):
                 stim.get('expected'),
                 stim.get('help')
             )
+
+    def test_is_content_json(self):
+        stimuli = [
+            {
+                'request': fake.create_request(
+                    path='/v2.1/os-aggregates/0123456789abcdef0123456789abcdef/action',
+                    method='POST',
+                    body_dict={"add_host": {"host": "21549b2f665945baaa7101926a00143c"}},
+                ),
+                'expected': True
+            },
+            {
+                'request': fake.create_request(
+                    path='/v2.1/os-aggregates/0123456789abcdef0123456789abcdef/action'
+                ),
+                'expected': False
+            },
+            {
+                'request': webob.Request.blank(
+                    path='/v1/foobar'
+                ),
+                'expected': False
+            }
+        ]
+
+        for s in stimuli:
+            req = s.get('request')
+            expected = s.get('expected')
+            actual = common.is_content_json(req)
+
+            self.assertEqual(
+                actual,
+                expected,
+                "should be '{0}' but got '{1}'".format(expected, actual)
+            )
+
 
 
 if __name__ == '__main__':

@@ -163,8 +163,14 @@ def is_content_json(req):
     :param req: the request
     :return: bool
     """
-    return req.content_type == 'application/json' \
-        and int(req.content_length) > 0
+    content_type = ''
+    try:
+        content_type = req.content_type
+    except AttributeError:
+        content_type = req.environ.get(['CONTENT_TYPE'], '')
+    finally:
+        return 'application/json' in content_type \
+            and int(req.content_length) > 0
 
 
 def is_uid_string(string):
