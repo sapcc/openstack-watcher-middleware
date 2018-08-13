@@ -1,77 +1,20 @@
+path_keywords:
+  - bios: setting
+  - chassis: chassis
+  - connectors
+  - drivers
+  - heartbeat: node
+  - methods
+  - nodes
+  - ports
+  - portgroups
+  - targets
+  - traits
+  - volume
+  - vifs
+
 custom_actions:
-  nodes:
-    - method: GET
-      action_type: read/list
-
-    - portgroups:
-        - method: GET
-          action_type: read/list
-
-    - ports:
-        - method: GET
-          action_type: read/list
-
-    - node:
-        - vendor_passthru:
-            - methods:
-                - method: GET
-                  action_type: read/list
-
-        - traits:
-            - method: GET
-              action_type: read/list
-
-        - vifs:
-            - method: GET
-              action_type: read/list
-
-        - portgroups:
-            - method: GET
-              action_type: read/list
-
-        - ports:
-            - method: GET
-              action_type: read/list
-
-        - bios:
-            - method: GET
-              action_type: read/list
-
-  portgroups:
-    - method: GET
-      action_type: read/list
-
-    - portgroup:
-        - ports:
-          - method: GET
-            action_type: read/list
-
-  ports:
-    - method: GET
-      action_type: read/list
-
-  volume:
-    - method: GET
-      action_type: read/list
-
-    - connectors:
-        - method: GET
-          action_type: read/list
-
-    - targets:
-        - method: GET
-          action_type: read/list
-
-  - drivers:
+  chassis:
+    chassis:
       - method: GET
-        action_type: read/list
-
-      - driver:
-          - vendor_passthru:
-              - methods:
-                  - method: GET
-                    action_type: read/list
-
-  - chassis:
-      - method: GET
-        action_type: read/list
+        action_type: read

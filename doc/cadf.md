@@ -4,6 +4,34 @@ The Cloud Audit Data Federation (CADF) specification defines a model for events 
 A comprehensive overview of OpenStack requests and their CADF representation can be found here: [Cloud Audit Data Federation - OpenStack Profile (CADF-OpenStack)](https://www.dmtf.org/sites/default/files/standards/documents/DSP2038_1.1.0.pdf).  
 The openstack-watcher-middleware follows DMTF specification DSP2038, version 1.1.0 as of 27 April 2015.
 
+#### Classification
+
+The following attributes are recorded and passed via the WSGI environment through the pipeline.
+Moreover, this meta data is emitted as Prometheus metrics.  
+Note: The attributes in the environment are capitalized.
+For example: `WATCHER.ACTION`, `WATCHER.INITIATOR_PROJECT_ID`, `WATCHER.TARGET_PROJECT_ID`, etc. .
+
+- `action`:       the CADF action
+- `service`:      the name of the service
+
+**Initiator** attributes:
+- `project_id`:   the initiators project uid. `None` if domain scoped, `Unknown` if not authenticated.
+- `domain_id`:    the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
+- `user_id`:      the initiators user id. `Unknown` if not authenticated.
+- `host_address`: the initiators host address
+  
+  
+**Target** attributes:
+- `project_id`:   the targets project uid. `Unknown` if it could not be determined. 
+- `type_uri`:     characterizes the URI of the target resource
+
+
+**Additional service specific attributes**:
+
+- Swift (object-store):
+    - `target.container_id`: the name/id of the swift container. `None` if not relevant. `Unknown` if it could not be determined.
+
+
 #### CADF actions
 
 Actions characterize the operation performed by the initiator of a request against a target. 

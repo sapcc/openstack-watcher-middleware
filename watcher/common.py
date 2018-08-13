@@ -40,7 +40,8 @@ SERVICE_TYPE_CADF_PREFIX_MAP = {
     'volume': 'service/storage/block',
     'identity': 'data/security',
     'share': 'service/storage/share',
-    'baremetal': 'service/compute/baremetal'
+    'baremetal': 'service/compute/baremetal',
+    'key-manager': 'service/security/keymanager'
 }
 
 

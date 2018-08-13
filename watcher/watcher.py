@@ -13,7 +13,6 @@
 # under the License.
 
 import logging
-import json
 import yaml
 import time
 
@@ -159,6 +158,7 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.SERVICE_TYPE'] = self.service_type
 
         labels = [
+            "service_name:{0}".format(self.strategy.get_cadf_service_name()),
             "service:{0}".format(self.service_type),
             "action:{0}".format(cadf_action),
             "initiator_project_id:{0}".format(initiator_project_id),
@@ -333,14 +333,14 @@ class OpenStackWatcherMiddleware(object):
             if not req.json_body:
                 return
 
-            json_body_dict = json.loads(req.json_body)
+            json_body_dict = common.load_json_dict(req.json)
             if not json_body_dict:
                 return
             project_id = common.find_project_id_in_auth_dict(json_body_dict)
             domain_id = common.find_domain_id_in_auth_dict(json_body_dict)
             user_id = common.find_user_id_in_auth_dict(json_body_dict)
-        except ValueError as e:
-            self.logger.debug('unable to read request body: ', str(e))
+        except Exception as e:
+            self.logger.debug('unable to parse keystone authentication request body: {0}'.format(str(e)))
         finally:
             return project_id, domain_id, user_id
 

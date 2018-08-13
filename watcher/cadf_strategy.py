@@ -87,6 +87,16 @@ class BaseCADFStrategy(object):
         else:
             self.keyword_exclusions = default_keyword_exclusions
 
+    def get_cadf_service_name(self):
+        """
+        get the service name according to the CADF spec
+
+        :return: the cadf service name or unknown
+        """
+        if common.is_none_or_unknown(self.target_type_uri_prefix):
+            return taxonomy.UNKNOWN
+        return self.target_type_uri_prefix
+
     def determine_target_type_uri(self, req):
         """
         determines the target.type_uri of a request by its path in the following order:
