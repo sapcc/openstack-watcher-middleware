@@ -49,9 +49,26 @@ class OpenStackWatcherMiddleware(object):
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
         # get the project uid from the request path or from the token (default)
-        self.is_project_id_from_path = common.string_to_bool(self.wsgi_config.get('target_project_id_from_path', 'False'))
+        self.is_project_id_from_path = common.string_to_bool(
+            self.wsgi_config.get('target_project_id_from_path', 'False')
+        )
+        # get the project id from the service catalog (see documentation on keystone auth_token middleware)
         self.is_project_id_from_service_catalog = common.string_to_bool(
-            self.wsgi_config.get('target_project_id_from_service_catalog', 'False'))
+            self.wsgi_config.get('target_project_id_from_service_catalog', 'False')
+        )
+
+        # whether to include the target project id in the metrics
+        self.is_include_target_project_id_in_metric = common.string_to_bool(
+            self.wsgi_config.get('include_target_project_id_in_metric', 'True')
+        )
+        # whether to include the target domain id in the metrics
+        self.is_include_target_domain_id_in_metric = common.string_to_bool(
+            self.wsgi_config.get('include_target_domain_id_in_metric', 'True')
+        )
+        # whether to include the initiator user id for authentication request in the metrics
+        self.is_include_authentication_initiator_user_id_in_metric = common.string_to_bool(
+            self.wsgi_config.get('include_authentication_initiator_user_id_in_metric', 'True')
+        )
 
         config_file_path = config.get('config_file', None)
         if config_file_path:
@@ -163,9 +180,20 @@ class OpenStackWatcherMiddleware(object):
             "action:{0}".format(cadf_action),
             "initiator_project_id:{0}".format(initiator_project_id),
             "initiator_domain_id:{0}".format(initiator_domain_id),
-            "target_project_id:{0}".format(target_project_id),
             "target_type_uri:{0}".format(target_type_uri),
         ]
+
+        # include the target project id in metric
+        if self.is_include_target_project_id_in_metric:
+            labels.append(
+                "target_project_id:{0}".format(target_project_id)
+            )
+
+        # if authentication request: include initiator user id
+        if cadf_action == taxonomy.ACTION_AUTHENTICATE and self.is_include_authentication_initiator_user_id_in_metric:
+            labels.append(
+                "initiator_user_id:{0}".format(initiator_user_id)
+            )
 
         # if swift request: determine target.container_id based on request path
         if common.is_swift_request(req.path) or self.service_type == 'object-store':
@@ -330,7 +358,7 @@ class OpenStackWatcherMiddleware(object):
         """
         project_id = domain_id = user_id = taxonomy.UNKNOWN
         try:
-            if not req.json_body:
+            if not req.json:
                 return
 
             json_body_dict = common.load_json_dict(req.json)

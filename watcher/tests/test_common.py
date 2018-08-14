@@ -117,6 +117,52 @@ class TestCommon(unittest.TestCase):
                 "should be '{0}' but got '{1}'".format(expected, actual)
             )
 
+    def test_string_to_bool(self):
+        stimuli = [
+            {
+                'input': u'True',
+                'expected': True
+            },
+            {
+                'input': u'False',
+                'expected': False
+            },
+            {
+                'input': 'True',
+                'expected': True
+            },
+            {
+                'input': "True",
+                'expected': True
+            },
+            {
+                'input': 'False',
+                'expected': False
+            },
+            {
+                'input': True,
+                'expected': True
+            },
+            {
+                'input': False,
+                'expected': False
+            },
+            {
+                'input': "foobar",
+                'expected': False
+            }
+        ]
+
+        for s in stimuli:
+            input = s.get('input')
+            expected = s.get('expected')
+            actual = common.string_to_bool(input)
+
+            self.assertEqual(
+                actual,
+                expected,
+                "bool of '{0}' should be '{1}' but got '{2}'".format(repr(input), expected, actual)
+            )
 
 
 if __name__ == '__main__':
