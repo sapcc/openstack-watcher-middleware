@@ -213,8 +213,18 @@ def endswith_version(string):
     return False
 
 
-def string_to_bool(bool_string):
-    return bool_string.lower() == 'true'
+def string_to_bool(possible_bool_string):
+    """
+    ensures a bool
+
+    :param possible_bool_string: might be string, unicode or bool
+    :return: bool
+    """
+    if isinstance(possible_bool_string, bool):
+        return possible_bool_string
+    if isinstance(possible_bool_string, six.text_type):
+        return str(possible_bool_string).lower() == 'true'
+    return False
 
 
 def load_json_dict(json_body):
@@ -224,7 +234,7 @@ def load_json_dict(json_body):
     :param json_body: the json body of a request might be string, unicode or dict
     :return: the json body as a dictionary
     """
-    if isinstance(json_body, str) or isinstance(json_body, unicode):
+    if isinstance(json_body, six.text_type):
         json_body = json.loads(json_body)
     if isinstance(json_body, dict):
         return json_body

@@ -9,7 +9,7 @@ WORKDIR = os.path.dirname(os.path.realpath(__file__))
 BARBICAN_CONFIG_PATH = WORKDIR + '/fixtures/barbican.yaml'
 
 
-class TestIronic(unittest.TestCase):
+class TestBarbican(unittest.TestCase):
     is_setup = False
 
     def setUp(self):
