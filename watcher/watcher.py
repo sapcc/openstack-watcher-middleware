@@ -65,9 +65,9 @@ class OpenStackWatcherMiddleware(object):
         self.is_include_target_domain_id_in_metric = common.string_to_bool(
             self.wsgi_config.get('include_target_domain_id_in_metric', 'True')
         )
-        # whether to include the initiator user id for authentication request in the metrics
-        self.is_include_authentication_initiator_user_id_in_metric = common.string_to_bool(
-            self.wsgi_config.get('include_authentication_initiator_user_id_in_metric', 'True')
+        # whether to include the initiator user id in the metrics
+        self.is_include_initiator_user_id_in_metric = common.string_to_bool(
+            self.wsgi_config.get('include_initiator_user_id_in_metric', 'False')
         )
 
         config_file_path = config.get('config_file', None)
@@ -189,8 +189,8 @@ class OpenStackWatcherMiddleware(object):
                 "target_project_id:{0}".format(target_project_id)
             )
 
-        # if authentication request: include initiator user id
-        if cadf_action == taxonomy.ACTION_AUTHENTICATE and self.is_include_authentication_initiator_user_id_in_metric:
+        # include initiator user id
+        if self.is_include_initiator_user_id_in_metric:
             labels.append(
                 "initiator_user_id:{0}".format(initiator_user_id)
             )
