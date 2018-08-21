@@ -15,9 +15,16 @@ config_file = /etc/watcher.yaml
 
 # project id can be determined from either request path or service catalog if keystone.auth_token middleware is set to 'include_service_catalog = true'
 # determine the project id from request path
-project_id_from_path = true | false
+project_id_from_path = true | false (default)
+
 # determine the project id from the service catalog
-project_id_from_service_catalog = true | false
+project_id_from_service_catalog = true | false (default)
+
+# whether to include the target project id in the openstack_watcher_* metrics
+include_target_project_id_in_metric = true (default) | false
+
+# whether to include the initiators user id in the openstack_watcher_* metrics
+include_initiator_user_id_in_metric = true | false (default)
 
 # per default the target.type_uri is prefixed by 'service/<service_type>/'
 # if the cadf spec. requires a different prefix, it might be given here 
