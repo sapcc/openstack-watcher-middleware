@@ -174,24 +174,30 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.ACTION'] = cadf_action
         environ['WATCHER.SERVICE_TYPE'] = self.service_type
 
+        # labels applied to all metrics emitted by this middleware
         labels = [
             "service_name:{0}".format(self.strategy.get_cadf_service_name()),
             "service:{0}".format(self.service_type),
             "action:{0}".format(cadf_action),
-            "initiator_project_id:{0}".format(initiator_project_id),
-            "initiator_domain_id:{0}".format(initiator_domain_id),
             "target_type_uri:{0}".format(target_type_uri),
         ]
 
+        # additional labels not needed in all metrics
+        detail_labels = [
+            "initiator_project_id:{0}".format(initiator_project_id),
+            "initiator_domain_id:{0}".format(initiator_domain_id),
+        ]
+        detail_labels = labels + detail_labels
+
         # include the target project id in metric
         if self.is_include_target_project_id_in_metric:
-            labels.append(
+            detail_labels.append(
                 "target_project_id:{0}".format(target_project_id)
             )
 
         # include initiator user id
         if self.is_include_initiator_user_id_in_metric:
-            labels.append(
+            detail_labels.append(
                 "initiator_user_id:{0}".format(initiator_user_id)
             )
 
@@ -230,7 +236,7 @@ class OpenStackWatcherMiddleware(object):
                 labels.append("status:{0}".format(status_code))
 
                 self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
-                self.metric_client.increment('api_requests_total', tags=labels)
+                self.metric_client.increment('api_requests_total', tags=detail_labels)
             except Exception as e:
                 self.logger.debug("failed to submit metrics for %s: %s" % (str(labels), str(e)))
             finally:
