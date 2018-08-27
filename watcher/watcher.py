@@ -234,6 +234,7 @@ class OpenStackWatcherMiddleware(object):
                     status_code = 'none'
 
                 labels.append("status:{0}".format(status_code))
+                detail_labels.append("status:{0}".format(status_code))
 
                 self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
                 self.metric_client.increment('api_requests_total', tags=detail_labels)
