@@ -2,6 +2,7 @@ path_keywords:
   - application_credentials
   - credentials
   - domains
+  - ec2tokens
   - endpoints
   - groups
   - implies
@@ -14,6 +15,7 @@ path_keywords:
   - role_assignments
   - role_inferences
   - roles
+  - s3tokens
   - services
   - tags
   - tokens

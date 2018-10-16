@@ -186,6 +186,12 @@ class BaseCADFStrategy(object):
         if method == 'POST' and 'auth/tokens' in path:
             return taxonomy.ACTION_AUTHENTICATE
 
+        if method == 'POST' and 's3tokens' in path:
+            return taxonomy.ACTION_AUTHENTICATE
+
+        if method == 'POST' and 'ec2tokens' in path:
+            return taxonomy.ACTION_AUTHENTICATE
+
         if method == 'GET':
             if path.endswith('/detail'):
                 return taxonomy.ACTION_LIST

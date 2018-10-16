@@ -64,6 +64,52 @@ class TestKeystone(unittest.TestCase):
             },
             {
                 'request': fake.create_request(
+                    path='/v3/ec2tokens',
+                    method='POST',
+                    body_dict={
+                        "credentials": {
+                            "access": "8cff51dc66594df4a2ae121f796df36c",
+                            "host": "localhost",
+                            "params": {
+                                "Action": "Test",
+                                "SignatureMethod": "HmacSHA256",
+                                "SignatureVersion": "2",
+                                "Timestamp": "2007-01-31T23:59:59Z"
+                            },
+                            "path": "/",
+                            "secret": "df8daeaa981b40cea1217fead123bc64",
+                            "signature": "Fra2UBKKtqy3GQ0mj+JqzR8GTGsbWQW+yN5Nih9ThfI=",
+                            "verb": "GET"
+                        }
+                    }
+                ),
+                'expected': 'authenticate'
+            },
+            {
+                'request': fake.create_request(
+                    path='/v3/s3tokens',
+                    method='POST',
+                    body_dict={
+                        "credentials": {
+                            "access": "8cff51dc66594df4a2ae121f796df36c",
+                            "host": "localhost",
+                            "params": {
+                                "Action": "Test",
+                                "SignatureMethod": "HmacSHA256",
+                                "SignatureVersion": "2",
+                                "Timestamp": "2007-01-31T23:59:59Z"
+                            },
+                            "path": "/",
+                            "secret": "df8daeaa981b40cea1217fead123bc64",
+                            "signature": "Fra2UBKKtqy3GQ0mj+JqzR8GTGsbWQW+yN5Nih9ThfI=",
+                            "verb": "GET"
+                        }
+                    }
+                ),
+                'expected': 'authenticate'
+            },
+            {
+                'request': fake.create_request(
                     path='/v3/domains/b206a1900310484f8a9504754c84b067/config/b206a1900310484f8a9504754c84b067/ldap'
                 ),
                 'expected': 'read'
@@ -138,6 +184,14 @@ class TestKeystone(unittest.TestCase):
             {
                 'request': fake.create_request(path='/v3/auth/tokens'),
                 'expected': 'data/security/auth/tokens'
+            },
+            {
+                'request': fake.create_request(path='/v3/ec2tokens'),
+                'expected': 'data/security/ec2tokens'
+            },
+            {
+                'request': fake.create_request(path='/v3/s3tokens'),
+                'expected': 'data/security/s3tokens'
             },
             {
                 'request': fake.create_request(
