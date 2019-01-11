@@ -241,7 +241,7 @@ class OpenStackWatcherMiddleware(object):
                 labels.append("status:{0}".format(status_code))
                 detail_labels.append("status:{0}".format(status_code))
 
-                self.metric_client.timing('api_requests_duration_seconds', time.time() - start, tags=labels)
+                self.metric_client.histogram('api_requests_duration_seconds', time.time() - start, tags=labels)
                 self.metric_client.increment('api_requests_total', tags=detail_labels)
             except Exception as e:
                 self.logger.debug("failed to submit metrics for %s: %s" % (str(labels), str(e)))
