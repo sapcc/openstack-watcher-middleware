@@ -175,6 +175,12 @@ class TestDesignate(unittest.TestCase):
                 ),
                 'expected': 'service/dns/root'
             },
+            {
+              'request': fake.create_request(
+                  path='/v2/zones/something.com'
+              ),
+              'expected': 'service/dns/zones/zone'
+            },
         ]
 
         for stim in stimuli:
