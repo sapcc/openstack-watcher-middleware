@@ -227,7 +227,7 @@ class BaseCADFStrategy(object):
         """
         cadf_action = taxonomy.UNKNOWN
         try:
-            if isinstance(json_body, str) or isinstance(json_body, unicode):
+            if isinstance(json_body, str) or isinstance(json_body, six.string_types):
                 json_body = common.load_json_dict(json_body)
             # the 1st key specifies the action type
             os_action = next(iter(json_body))
