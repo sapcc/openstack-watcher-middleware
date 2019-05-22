@@ -55,6 +55,22 @@ class TestCommon(unittest.TestCase):
                 expected
             )
 
+    def test_is_timestamp_string(self):
+        stimuli = {
+            '7df1acb1a2f2478eadf3f350d3f44c51': False,
+            'v2': False,
+            '2009-04-04': True,
+            '2008-02-01': True,
+            '2016-09-02': True,
+        }
+
+        for stim, expected in six.iteritems(stimuli):
+            is_timestamp = common.is_timestamp_string(stim)
+            self.assertEqual(
+                is_timestamp,
+                expected
+            )
+
     def test_trim_prefix(self):
         self.assertEqual(
             common.trim_prefix('service/storage/object/account/container', 'service/storage/object'),

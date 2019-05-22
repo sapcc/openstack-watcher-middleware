@@ -249,6 +249,42 @@ class TestNova(unittest.TestCase):
                 ),
                 'expected': 'service/compute/root'
             },
+            {
+                'request': fake.create_request(
+                    path='/2009-04-04/meta-data/block-device-mapping'
+                ),
+                'expected': 'service/compute/version/meta-data/block-device-mapping'
+            },
+            {
+                'request': fake.create_request(
+                    path='/2009-04-04/meta-data/block-device-mapping/root'
+                ),
+                'expected': 'service/compute/version/meta-data/block-device-mapping/block-device-mapping'
+            },
+            {
+                'request': fake.create_request(
+                    path='/2012-01-12/meta-data'
+                ),
+                'expected': 'service/compute/version/meta-data'
+            },
+            {
+                'request': fake.create_request(
+                    path='/2012-01-12/meta-data/hostname'
+                ),
+                'expected': 'service/compute/version/meta-data/hostname'
+            },
+            {
+                'request': fake.create_request(
+                    path='/2012-01-12'
+                ),
+                'expected': 'service/compute/version'
+            },
+            {
+                'request': fake.create_request(
+                    path='/latest/meta-data'
+                ),
+                'expected': 'service/compute/version/meta-data'
+            }
         ]
 
         for stim in stimuli:

@@ -349,6 +349,9 @@ class BaseCADFStrategy(object):
                 # ensure no versions or uids are added to the target_type_uri even if the path starts with one
                 if common.is_version_string(part) or common.is_uid_string(part):
                     continue
+                elif common.is_timestamp_string(part):
+                    target_type_uri.append('version')
+                    continue
                 if len(part) > 1:
                     target_type_uri.append(part)
 

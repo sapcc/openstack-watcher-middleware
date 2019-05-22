@@ -122,13 +122,17 @@ custom_actions:
 
 #### CADF target type URI
 
-The *target type URI* is a CADF specific representation of the request's target URI consisting of
-a service-specific prefix and the target URI without version or UUID strings. 
+A *target type URI* is a CADF specific representation of the request's target URI consisting of
+the service-specific prefix `service/<service_type>` and the target URI without version, UUIDs and name.
+This middleware relies on a [configuration](../etc/) to identify the parts of the target URI which should be replaced.
 
-In most cases this middleware builds the target type URI by concatenating the `service/<service_type>` prefix and
-all parts of the target URI which do not contain a UUID.
-In case a UUID is found, it's substituted by the singular of the previous part.  
-Should this default behaviour not suffice, writing a [custom strategy](./watcher/target_type_uri_strategy.py) might be required.
+The default replacement strategy determines the target type URI of a request by its path in the following order:  
+1. Check whether any of the given `regex_path_mapping`s applies. Replace and return.
+2. Check whether any of the given keywords appear in the path. 
+   Replace the part following the `keyword` with its singular if its not a `keyword` or `keyword_exclusion`.
+3. Determine target type URI by replacing UUIDs with the singular of the previous part.
+
+The default behaviour can be replaced by implementing a [custom strategy](./watcher/target_type_uri_strategy.py).
 
 Examples:
 ```
