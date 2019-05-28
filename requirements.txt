@@ -2,3 +2,4 @@ datadog
 pycadf!=2.0.0,>=1.1.0 # Apache-2.0
 WebOb
 six
+pyyaml

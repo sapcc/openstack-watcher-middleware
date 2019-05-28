@@ -227,7 +227,7 @@ class BaseCADFStrategy(object):
         """
         cadf_action = taxonomy.UNKNOWN
         try:
-            if isinstance(json_body, str) or isinstance(json_body, unicode):
+            if isinstance(json_body, str) or isinstance(json_body, six.string_types):
                 json_body = common.load_json_dict(json_body)
             # the 1st key specifies the action type
             os_action = next(iter(json_body))
@@ -348,6 +348,9 @@ class BaseCADFStrategy(object):
                         continue
                 # ensure no versions or uids are added to the target_type_uri even if the path starts with one
                 if common.is_version_string(part) or common.is_uid_string(part):
+                    continue
+                elif common.is_timestamp_string(part):
+                    target_type_uri.append('version')
                     continue
                 if len(part) > 1:
                     target_type_uri.append(part)

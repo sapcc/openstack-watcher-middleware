@@ -21,6 +21,7 @@ from pycadf import cadftaxonomy as taxonomy
 
 UID_REGEX = '[a-fA-F0-9-?]{32,36}'
 VERSION_REGEX = '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$'
+TIMESTAMP_REGEX = '^\d{4}-\d{2}-\d{2}$'
 
 METHOD_ACTION_MAP = {
     'GET': taxonomy.ACTION_READ,
@@ -196,6 +197,18 @@ def is_version_string(string):
     """
     version_pattern = re.compile(VERSION_REGEX)
     if version_pattern.match(string):
+        return True
+    return False
+
+
+def is_timestamp_string(string):
+    """
+    check if the string is a timestamp
+    :param string: potential timestamp string
+    :return: bool
+    """
+    timestamp_regex = re.compile(TIMESTAMP_REGEX)
+    if timestamp_regex.match(string) or str.lower(string) == 'latest':
         return True
     return False
 

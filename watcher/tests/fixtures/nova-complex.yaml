@@ -1,4 +1,5 @@
 path_keywords:
+  - block-device-mapping
   - consoles
   - entries
   - extensions
@@ -54,3 +55,6 @@ keyword_exclusions:
   - configure-project
   - label
   - disable-log-reason
+
+regex_path_mapping:
+  - '\S+/meta-data/block-device-mapping/\S+$': 'version/meta-data/block-device-mapping/block-device-mapping'
