@@ -135,9 +135,16 @@ class OpenStackWatcherMiddleware(object):
 
         req = Request(environ)
 
-        # determine initiator based on token
-        initiator_project_id, initiator_project_domain_id, initiator_domain_id, initiator_user_id, \
-            initiator_user_domain_id = self.get_initiator_project_domain_user_uid_from_environ(environ)
+        # determine initiator based on token context
+        initiator_project_id = environ.get('HTTP_X_PROJECT_ID', taxonomy.UNKNOWN)
+        initiator_project_name = environ.get('HTTP_X_PROJECT_NAME', taxonomy.UNKNOWN)
+        initiator_project_domain_id = environ.get('HTTP_X_PROJECT_DOMAIN_ID', taxonomy.UNKNOWN)
+        initiator_project_domain_name = environ.get('HTTP_X_DOMAIN_NAME', taxonomy.UNKNOWN)
+        initiator_domain_id = environ.get('HTTP_X_DOMAIN_ID', taxonomy.UNKNOWN)
+        initiator_domain_name = environ.get('HTTP_X_DOMAIN_NAME', taxonomy.UNKNOWN)
+        initiator_user_id = environ.get('HTTP_X_USER_ID', taxonomy.UNKNOWN)
+        initiator_user_domain_id = environ.get('HTTP_X_USER_DOMAIN_ID', taxonomy.UNKNOWN)
+        initiator_user_domain_name = environ.get('HTTP_X_USER_DOMAIN_NAME', taxonomy.UNKNOWN)
         initiator_host_address = req.client_addr or taxonomy.UNKNOWN
 
         # determine target based on request path or keystone.token_info
@@ -164,10 +171,14 @@ class OpenStackWatcherMiddleware(object):
 
         # set environ for initiator
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
+        environ['WATCHER.INITIATOR_PROJECT_NAME'] = initiator_project_name
         environ['WATCHER.INITIATOR_PROJECT_DOMAIN_ID'] = initiator_project_domain_id
+        environ['WATCHER.INIITATOR_PROJECT_DOMAIN_NAME'] = initiator_project_domain_name
         environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
+        environ['WATCHER.INITIATOR_DOMAIN_NAME'] = initiator_domain_name
         environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
         environ['WATCHER.INITIATOR_USER_DOMAIN_ID'] = initiator_user_domain_id
+        environ['WATCHER.INITIATOR_USER_DOMAIN_NAME'] = initiator_user_domain_name
         environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address
 
         # set environ for target
@@ -248,24 +259,6 @@ class OpenStackWatcherMiddleware(object):
                 self.logger.debug("failed to submit metrics for %s: %s" % (str(labels), str(e)))
             finally:
                 self.metric_client.close_buffer()
-
-    def get_initiator_project_domain_user_uid_from_environ(self, environ):
-        """
-        get the project uid, project domain uid, domain uid, user uid, user domain uid from the environ
-        as parsed by the keystone.auth_token middleware
-
-        :param environ: the request's environ
-        :return: project id, project domain id, domain id, user uid, user domain id
-        """
-        project_id = project_domain_id = domain_id = user_id = user_domain_id = taxonomy.UNKNOWN
-        try:
-            project_id = environ.get('HTTP_X_PROJECT_ID')
-            project_domain_id = environ.get('HTTP_X_PROJECT_DOMAIN_ID')
-            domain_id = environ.get('HTTP_X_DOMAIN_ID')
-            user_id = environ.get('HTTP_X_USER_ID')
-            user_domain_id = environ.get('HTTP_X_USER_DOMAIN_ID')
-        finally:
-            return project_id, project_domain_id, domain_id, user_id, user_domain_id
 
     def get_target_project_uid_from_path(self, path):
         """
