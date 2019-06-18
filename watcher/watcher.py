@@ -136,15 +136,15 @@ class OpenStackWatcherMiddleware(object):
         req = Request(environ)
 
         # determine initiator based on token context
-        initiator_project_id = environ.get('HTTP_X_PROJECT_ID', taxonomy.UNKNOWN)
-        initiator_project_name = environ.get('HTTP_X_PROJECT_NAME', taxonomy.UNKNOWN)
-        initiator_project_domain_id = environ.get('HTTP_X_PROJECT_DOMAIN_ID', taxonomy.UNKNOWN)
-        initiator_project_domain_name = environ.get('HTTP_X_DOMAIN_NAME', taxonomy.UNKNOWN)
-        initiator_domain_id = environ.get('HTTP_X_DOMAIN_ID', taxonomy.UNKNOWN)
-        initiator_domain_name = environ.get('HTTP_X_DOMAIN_NAME', taxonomy.UNKNOWN)
-        initiator_user_id = environ.get('HTTP_X_USER_ID', taxonomy.UNKNOWN)
-        initiator_user_domain_id = environ.get('HTTP_X_USER_DOMAIN_ID', taxonomy.UNKNOWN)
-        initiator_user_domain_name = environ.get('HTTP_X_USER_DOMAIN_NAME', taxonomy.UNKNOWN)
+        initiator_project_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_ID')
+        initiator_project_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_NAME')
+        initiator_project_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_ID')
+        initiator_project_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
+        initiator_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_ID')
+        initiator_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
+        initiator_user_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_ID')
+        initiator_user_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_ID')
+        initiator_user_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_NAME')
         initiator_host_address = req.client_addr or taxonomy.UNKNOWN
 
         # determine target based on request path or keystone.token_info
@@ -252,13 +252,35 @@ class OpenStackWatcherMiddleware(object):
                 labels.append("status:{0}".format(status_code))
                 detail_labels.append("status:{0}".format(status_code))
 
-                self.metric_client.timing('api_requests_duration_seconds', int(round(1000 * (time.time() - start))),
-                                          tags=labels)
+                self.metric_client.timing(
+                    'api_requests_duration_seconds', int(round(1000 * (time.time() - start))), tags=labels
+                )
                 self.metric_client.increment('api_requests_total', tags=detail_labels)
             except Exception as e:
                 self.logger.debug("failed to submit metrics for %s: %s" % (str(labels), str(e)))
             finally:
                 self.metric_client.close_buffer()
+
+    def get_safe_from_environ(self, environ, key, default=taxonomy.UNKNOWN):
+        """
+        get value for a key from the environ dict ensuring it's never None or an empty string
+
+        :param environ: the request environ
+        :param key: the key in the environ dictionary
+        :param default: return value if key not found
+        :return: the value to the key or default
+        """
+        val = default
+        try:
+            v = environ.get(key, default)
+            if v and v != "":
+                val = v
+
+        except Exception as e:
+            self.logger.debug("error getting '{0}' from environ: {1}".format(key, e))
+
+        finally:
+            return val
 
     def get_target_project_uid_from_path(self, path):
         """
