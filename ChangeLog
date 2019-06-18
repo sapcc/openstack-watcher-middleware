@@ -1,6 +1,77 @@
 CHANGES
 =======
 
+* taxonomy.UNKNOWN instead of none
+* include initiator project and domain name in environ
+* include names
+* it's stable
+
+1.0.27
+------
+
+* Replace timestamps; fix nova metadata calls (#7)
+
+1.0.26
+------
+
+* Use millisecond resolution for timers, since the statsd exporter expects it that way and buckets are filled wrong otherwise: https://github.com/prometheus/statsd\_exporter/blob/master/exporter.go#L407
+* Use millisecond resolution for timers, since the statsd exporter expects it that way and buckets are filled wrong otherwise: https://github.com/prometheus/statsd\_exporter/blob/master/exporter.go#L407
+
+1.0.25
+------
+
+* also detect keystone ec2/s3 token authentications
+
+1.0.24
+------
+
+* also add cadf service name, initiator project domain id, initiator user domain id to environ
+* added an entrypoint for flask based deployments
+
+1.0.23
+------
+
+* add status label back to api\_requests\_total
+
+1.0.22
+------
+
+* exclude uids from latency metrics
+
+1.0.21
+------
+
+* document all configuration options
+* make it possible to include a user-id label in all requests. (#4)
+
+1.0.20
+------
+
+* include initiator user id in metric for ks auth req
+
+1.0.19
+------
+
+* fix test name
+
+1.0.18
+------
+
+* add barbican support, tests
+
+1.0.17
+------
+
+* fix request.content\_type if WebOb<1.7.4
+
+1.0.16
+------
+
+* logging to debug. manila parse json body fix
+
+1.0.15
+------
+
 * fix name mapping. use path\_keywords
 
 1.0.14
@@ -53,12 +124,36 @@ CHANGES
 -----
 
 * readme
+
+v1.0.5
+------
+
 * Latency and status (#3)
+
+v1.0.4
+------
+
 * enable check body of authentication requests
+
+v1.0.3
+------
+
 * client\_addr->host\_address
 * add /endpoints and test
+
+v1.0.2
+------
+
 * [swift] it's not /v1/info but /info
+
+v1.0.1
+------
+
 * dry requirements
+
+v1.0.0
+------
+
 * bump to 1.0.0
 * fix logging
 * default target.project\_id to initiator.project\_id if discovery fails

@@ -13,16 +13,16 @@
 # under the License.
 
 import logging
-import yaml
 import time
+import yaml
 
 from datadog.dogstatsd import DogStatsd
 from pycadf import cadftaxonomy as taxonomy
 from webob import Request
 
+from . import cadf_strategy as strategies
 from . import common
 from . import errors
-from . import cadf_strategy as strategies
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)-15s %(message)s')
 
@@ -247,7 +247,7 @@ class OpenStackWatcherMiddleware(object):
                 if status:
                     status_code = status.split()[0]
                 else:
-                    status_code = 'none'
+                    status_code = taxonomy.UNKNOWN
 
                 labels.append("status:{0}".format(status_code))
                 detail_labels.append("status:{0}".format(status_code))
