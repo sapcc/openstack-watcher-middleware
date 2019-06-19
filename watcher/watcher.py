@@ -139,10 +139,11 @@ class OpenStackWatcherMiddleware(object):
         initiator_project_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_ID')
         initiator_project_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_NAME')
         initiator_project_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_ID')
-        initiator_project_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
+        initiator_project_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_NAME')
         initiator_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_ID')
         initiator_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
         initiator_user_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_ID')
+        initiator_user_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_NAME')
         initiator_user_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_ID')
         initiator_user_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_NAME')
         initiator_host_address = req.client_addr or taxonomy.UNKNOWN
@@ -177,6 +178,7 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
         environ['WATCHER.INITIATOR_DOMAIN_NAME'] = initiator_domain_name
         environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
+        environ['WATCHER.INITIATOR_USER_NAME'] = initiator_user_name
         environ['WATCHER.INITIATOR_USER_DOMAIN_ID'] = initiator_user_domain_id
         environ['WATCHER.INITIATOR_USER_DOMAIN_NAME'] = initiator_user_domain_name
         environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address

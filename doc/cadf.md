@@ -22,6 +22,9 @@ For example: `WATCHER.ACTION`, `WATCHER.INITIATOR_PROJECT_ID`, `WATCHER.TARGET_P
 - `domain_id`:              the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
 - `domain_name`:            the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
 - `user_id`:                the initiators user id. `Unknown` if not authenticated.
+- `user_name`:              the initiators user name. `Unknown` if not authenticated.
+- `user_domain_id`:         the initiators user domain id. `Unknown` if not authenticated.
+- `user_domain_name`:       the initiators user domain name. `Unknown` if not authenticated.
 - `host_address`:           the initiators host address.
   
   
