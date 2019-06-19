@@ -173,7 +173,7 @@ class OpenStackWatcherMiddleware(object):
         environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
         environ['WATCHER.INITIATOR_PROJECT_NAME'] = initiator_project_name
         environ['WATCHER.INITIATOR_PROJECT_DOMAIN_ID'] = initiator_project_domain_id
-        environ['WATCHER.INIITATOR_PROJECT_DOMAIN_NAME'] = initiator_project_domain_name
+        environ['WATCHER.INITIATOR_PROJECT_DOMAIN_NAME'] = initiator_project_domain_name
         environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
         environ['WATCHER.INITIATOR_DOMAIN_NAME'] = initiator_domain_name
         environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id

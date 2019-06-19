@@ -15,10 +15,14 @@ For example: `WATCHER.ACTION`, `WATCHER.INITIATOR_PROJECT_ID`, `WATCHER.TARGET_P
 - `service`:      the name of the service
 
 **Initiator** attributes:
-- `project_id`:   the initiators project uid. `None` if domain scoped, `Unknown` if not authenticated.
-- `domain_id`:    the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
-- `user_id`:      the initiators user id. `Unknown` if not authenticated.
-- `host_address`: the initiators host address
+- `project_id`:             the initiators project uid. `None` if domain scoped, `Unknown` if not authenticated.
+- `project_name`:           the initiators project name. `None` if domain scoped, `Unknown` if not authenticated.
+- `project_domain_id`:      the initiators project domain uid. `None` if project scoped, `Unknown` if not authenticated.
+- `project_domain_name`:    the initiators project domain name. `None` if project scoped, `Unknown` if not authenticated.
+- `domain_id`:              the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
+- `domain_name`:            the initiators domain uid. `None` if project scoped, `Unknown` if not authenticated.
+- `user_id`:                the initiators user id. `Unknown` if not authenticated.
+- `host_address`:           the initiators host address.
   
   
 **Target** attributes:
