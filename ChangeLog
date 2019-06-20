@@ -1,6 +1,19 @@
 CHANGES
 =======
 
+1.0.30
+------
+
+* extract user name; update docs
+
+1.0.29
+------
+
+* fix type; update docs
+
+1.0.28
+------
+
 * taxonomy.UNKNOWN instead of none
 * include initiator project and domain name in environ
 * include names
