@@ -50,6 +50,7 @@ The watcher is capable of classifying request actions based on the HTTP method a
 |---------------|-------------------|-------------------|
 | GET           |                   | read              |
 | GET           | ../detail         | read/list         | 
+| GET           | <path keyword>    | read/list         |
 | HEAD          |                   | read              |
 | PUT           |                   | update            |
 | PATCH         |                   | update            |
@@ -60,7 +61,7 @@ The watcher is capable of classifying request actions based on the HTTP method a
 |---------------|-------------------|-------------------|        
 ```
 
-Moreover, any request path ending with a configured `path_keyword` will be interpreted as a `read/list`.  
+Note that any request path ending with a configured `path_keyword` will be interpreted as a `read/list`.  
 Using this mapping the watcher is capable of classifying request actions correctly in most cases.  
 However, some cases require a different mapping to alternative actions.
 The default classification can be overwritten using a custom_actions mapping
