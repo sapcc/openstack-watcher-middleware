@@ -153,25 +153,30 @@ class BaseCADFStrategy(object):
         """
         cadf_action = taxonomy.UNKNOWN
 
-        # is this an ../action request with a json body, then check the json body for the openstack action
-        if common.is_action_request(req):
-            cadf_action = self._cadf_action_from_body(req.json)
+        try:
+            # is this an ../action request with a json body, then check the json body for the openstack action
+            if common.is_action_request(req):
+                cadf_action = self._cadf_action_from_body(req.json)
 
-        # get target type URI from request path if still unknown
-        if common.is_none_or_unknown(target_type_uri):
-            target_type_uri = self.determine_target_type_uri(req)
+            # get target type URI from request path if still unknown
+            if common.is_none_or_unknown(target_type_uri):
+                target_type_uri = self.determine_target_type_uri(req)
 
-        # lookup action in custom mapping if one exists
-        if self.custom_action_config:
-            custom_cadf_action = self._cadf_action_from_custom_action_config(target_type_uri, req.method, cadf_action)
-            if not common.is_none_or_unknown(custom_cadf_action):
-                cadf_action = custom_cadf_action
+            # lookup action in custom mapping if one exists
+            if self.custom_action_config:
+                custom_cadf_action = self._cadf_action_from_custom_action_config(target_type_uri, req.method, cadf_action)
+                if not common.is_none_or_unknown(custom_cadf_action):
+                    cadf_action = custom_cadf_action
 
-        # if nothing was found, return cadf action based on request method and path
-        if common.is_none_or_unknown(cadf_action):
-            cadf_action = self._cadf_action_from_method_and_target_type_uri(req.method, target_type_uri)
+            # if nothing was found, return cadf action based on request method and path
+            if common.is_none_or_unknown(cadf_action):
+                cadf_action = self._cadf_action_from_method_and_target_type_uri(req.method, target_type_uri)
 
-        return cadf_action
+        except Exception as e:
+            self.logger.debug("error while determining cadf action: {0}".format(str(e)))
+
+        finally:
+            return cadf_action
 
     def _cadf_action_from_method_and_target_type_uri(self, method, path):
         """
@@ -235,7 +240,7 @@ class BaseCADFStrategy(object):
             if os_action and len(os_action) > 2:
                 # add prefix to os_action
                 cadf_action = self.cadf_os_action_prefix + str(os_action)
-                return
+
         except Exception as e:
             self.logger.debug("error while determining action from json body: {0}".format(str(e)))
 
