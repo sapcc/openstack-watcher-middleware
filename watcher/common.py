@@ -165,14 +165,25 @@ def is_content_json(req):
     :param req: the request
     :return: bool
     """
+
+    # Attempt to get the content type from the request.
     content_type = ''
     try:
         content_type = req.content_type
     except AttributeError:
         content_type = req.environ.get(['CONTENT_TYPE'], '')
+
+    # Attempt to get the content length from the request.
+    # Extra care for symlinks in swift pointing to a json file and having
+    # the content type header set accordingly without having a content_length.
+    content_length = 0
+    try:
+        content_length = int(req.content_length)
+    except (AttributeError, TypeError):
+        pass
     finally:
         return 'application/json' in content_type \
-            and int(req.content_length) > 0
+            and content_length > 0
 
 
 def is_uid_string(string):
