@@ -338,7 +338,7 @@ class OpenStackWatcherMiddleware(object):
         finally:
             if project_id == taxonomy.UNKNOWN:
                 self.logger.debug(
-                    "unable to get target.project_id for service type '{1}' from service catalog"
+                    "unable to get target.project_id '{0}' for service type '{1}' from service catalog"
                     .format(project_id, self.service_type))
             else:
                 self.logger.debug(

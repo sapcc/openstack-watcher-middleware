@@ -522,6 +522,38 @@ class SwiftCADFStrategy(BaseCADFStrategy):
             uri = '/'.join(target_type_uri).lstrip('/')
             return self._add_prefix_target_type_uri(uri)
 
+    def determine_cadf_action(self, req, target_type_uri=None):
+        """
+        determine the CADF action of a request
+
+        :param req: the request
+        :param target_type_uri: (optional) the target type URI of the request path if already known.
+                                will attempt to determine otherwise
+        :return: the CADF action of unknown
+        """
+        cadf_action = taxonomy.UNKNOWN
+
+        try:
+            # get the target type URI from request path if still unknown
+            if common.is_none_or_unknown(target_type_uri):
+                target_type_uri = self.determine_target_type_uri(req)
+
+            # lookup action in custom mapping if one exists
+            if self.custom_action_config:
+                custom_cadf_action = self._cadf_action_from_custom_action_config(target_type_uri, req.method, cadf_action)
+                if not common.is_none_or_unknown(custom_cadf_action):
+                    cadf_action = custom_cadf_action
+
+            # if nothing was found, return cadf action based on request method and path
+            if common.is_none_or_unknown(cadf_action):
+                cadf_action = self._cadf_action_from_method_and_target_type_uri(req.method, target_type_uri)
+
+        except Exception as e:
+            self.logger.debug("error while determining cadf action: {0}".format(str(e)))
+
+        finally:
+            return cadf_action
+
     def get_swift_account_container_object_id_from_path(self, path):
         path_regex = re.compile(
             r'/\S+AUTH_(?P<account_id>\S*?)(\/+?|$)'

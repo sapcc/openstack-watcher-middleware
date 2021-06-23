@@ -1,6 +1,18 @@
 CHANGES
 =======
 
+1.0.32
+------
+
+* fix swift symlink to json file
+
+1.0.31
+------
+
+* docu
+* handle exception
+* adds rudolf; extend gitignore; changelog
+
 1.0.30
 ------
 
