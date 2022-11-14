@@ -132,105 +132,107 @@ class OpenStackWatcherMiddleware(object):
 
         # capture start timestamp
         start = time.time()
+        labels = []
+        detail_labels = []
 
         req = Request(environ)
+        try:
+            # determine initiator based on token context
+            initiator_project_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_ID')
+            initiator_project_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_NAME')
+            initiator_project_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_ID')
+            initiator_project_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_NAME')
+            initiator_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_ID')
+            initiator_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
+            initiator_user_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_ID')
+            initiator_user_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_NAME')
+            initiator_user_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_ID')
+            initiator_user_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_NAME')
+            initiator_host_address = req.client_addr or taxonomy.UNKNOWN
 
-        # determine initiator based on token context
-        initiator_project_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_ID')
-        initiator_project_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_NAME')
-        initiator_project_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_ID')
-        initiator_project_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_PROJECT_DOMAIN_NAME')
-        initiator_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_ID')
-        initiator_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_DOMAIN_NAME')
-        initiator_user_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_ID')
-        initiator_user_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_NAME')
-        initiator_user_domain_id = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_ID')
-        initiator_user_domain_name = self.get_safe_from_environ(environ, 'HTTP_X_USER_DOMAIN_NAME')
-        initiator_host_address = req.client_addr or taxonomy.UNKNOWN
+            # determine target based on request path or keystone.token_info
+            target_project_id = taxonomy.UNKNOWN
+            if self.is_project_id_from_path:
+                target_project_id = self.get_target_project_uid_from_path(req.path)
+            elif self.is_project_id_from_service_catalog:
+                target_project_id = self.get_target_project_id_from_keystone_token_info(environ.get('keystone.token_info'))
 
-        # determine target based on request path or keystone.token_info
-        target_project_id = taxonomy.UNKNOWN
-        if self.is_project_id_from_path:
-            target_project_id = self.get_target_project_uid_from_path(req.path)
-        elif self.is_project_id_from_service_catalog:
-            target_project_id = self.get_target_project_id_from_keystone_token_info(environ.get('keystone.token_info'))
+            # default target_project_id to initiator_project_id if still unknown
+            if not target_project_id or target_project_id == taxonomy.UNKNOWN:
+                target_project_id = initiator_project_id
 
-        # default target_project_id to initiator_project_id if still unknown
-        if not target_project_id or target_project_id == taxonomy.UNKNOWN:
-            target_project_id = initiator_project_id
+            # determine target.type_uri for request
+            target_type_uri = self.determine_target_type_uri(req)
 
-        # determine target.type_uri for request
-        target_type_uri = self.determine_target_type_uri(req)
+            # determine cadf_action for request. consider custom action config.
+            cadf_action = self.determine_cadf_action(req, target_type_uri)
 
-        # determine cadf_action for request. consider custom action config.
-        cadf_action = self.determine_cadf_action(req, target_type_uri)
+            # if authentication request consider project, domain and user in body
+            if self.service_type == 'identity' and cadf_action == taxonomy.ACTION_AUTHENTICATE:
+                initiator_project_id, initiator_domain_id, initiator_user_id = \
+                    self.get_project_domain_and_user_id_from_keystone_authentication_request(req)
 
-        # if authentication request consider project, domain and user in body
-        if self.service_type == 'identity' and cadf_action == taxonomy.ACTION_AUTHENTICATE:
-            initiator_project_id, initiator_domain_id, initiator_user_id = \
-                self.get_project_domain_and_user_id_from_keystone_authentication_request(req)
+            # set environ for initiator
+            environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
+            environ['WATCHER.INITIATOR_PROJECT_NAME'] = initiator_project_name
+            environ['WATCHER.INITIATOR_PROJECT_DOMAIN_ID'] = initiator_project_domain_id
+            environ['WATCHER.INITIATOR_PROJECT_DOMAIN_NAME'] = initiator_project_domain_name
+            environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
+            environ['WATCHER.INITIATOR_DOMAIN_NAME'] = initiator_domain_name
+            environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
+            environ['WATCHER.INITIATOR_USER_NAME'] = initiator_user_name
+            environ['WATCHER.INITIATOR_USER_DOMAIN_ID'] = initiator_user_domain_id
+            environ['WATCHER.INITIATOR_USER_DOMAIN_NAME'] = initiator_user_domain_name
+            environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address
 
-        # set environ for initiator
-        environ['WATCHER.INITIATOR_PROJECT_ID'] = initiator_project_id
-        environ['WATCHER.INITIATOR_PROJECT_NAME'] = initiator_project_name
-        environ['WATCHER.INITIATOR_PROJECT_DOMAIN_ID'] = initiator_project_domain_id
-        environ['WATCHER.INITIATOR_PROJECT_DOMAIN_NAME'] = initiator_project_domain_name
-        environ['WATCHER.INITIATOR_DOMAIN_ID'] = initiator_domain_id
-        environ['WATCHER.INITIATOR_DOMAIN_NAME'] = initiator_domain_name
-        environ['WATCHER.INITIATOR_USER_ID'] = initiator_user_id
-        environ['WATCHER.INITIATOR_USER_NAME'] = initiator_user_name
-        environ['WATCHER.INITIATOR_USER_DOMAIN_ID'] = initiator_user_domain_id
-        environ['WATCHER.INITIATOR_USER_DOMAIN_NAME'] = initiator_user_domain_name
-        environ['WATCHER.INITIATOR_HOST_ADDRESS'] = initiator_host_address
+            # set environ for target
+            environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
+            environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
 
-        # set environ for target
-        environ['WATCHER.TARGET_PROJECT_ID'] = target_project_id
-        environ['WATCHER.TARGET_TYPE_URI'] = target_type_uri
+            # general cadf attributes
+            environ['WATCHER.ACTION'] = cadf_action
+            environ['WATCHER.SERVICE_TYPE'] = self.service_type
+            environ['WATCHER.CADF_SERVICE_NAME'] = self.strategy.get_cadf_service_name()
 
-        # general cadf attributes
-        environ['WATCHER.ACTION'] = cadf_action
-        environ['WATCHER.SERVICE_TYPE'] = self.service_type
-        environ['WATCHER.CADF_SERVICE_NAME'] = self.strategy.get_cadf_service_name()
+            # labels applied to all metrics emitted by this middleware
+            labels.append("service_name:{0}".format(self.strategy.get_cadf_service_name()))
+            labels.append("service:{0}".format(self.service_type))
+            labels.append("action:{0}".format(cadf_action))
+            labels.append("target_type_uri:{0}".format(target_type_uri))
 
-        # labels applied to all metrics emitted by this middleware
-        labels = [
-            "service_name:{0}".format(self.strategy.get_cadf_service_name()),
-            "service:{0}".format(self.service_type),
-            "action:{0}".format(cadf_action),
-            "target_type_uri:{0}".format(target_type_uri),
-        ]
+            # additional labels not needed in all metrics
+            detail_labels.append("initiator_project_id:{0}".format(initiator_project_id))
+            detail_labels.append("initiator_domain_id:{0}".format(initiator_domain_id))
+            detail_labels = labels + detail_labels
 
-        # additional labels not needed in all metrics
-        detail_labels = [
-            "initiator_project_id:{0}".format(initiator_project_id),
-            "initiator_domain_id:{0}".format(initiator_domain_id),
-        ]
-        detail_labels = labels + detail_labels
+            # include the target project id in metric
+            if self.is_include_target_project_id_in_metric:
+                detail_labels.append(
+                    "target_project_id:{0}".format(target_project_id)
+                )
 
-        # include the target project id in metric
-        if self.is_include_target_project_id_in_metric:
-            detail_labels.append(
-                "target_project_id:{0}".format(target_project_id)
+            # include initiator user id
+            if self.is_include_initiator_user_id_in_metric:
+                detail_labels.append(
+                    "initiator_user_id:{0}".format(initiator_user_id)
+                )
+
+            # if swift request: determine target.container_id based on request path
+            if common.is_swift_request(req.path) or self.service_type == 'object-store':
+                _, target_container_id = self.get_target_account_container_id_from_request(req)
+                environ['WATCHER.TARGET_CONTAINER_ID'] = target_container_id
+
+            self.logger.debug(
+                'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
+                'target_project_id: {3}, action: {4}, target_type_uri: {5}'.format(
+                    initiator_project_id, initiator_domain_id, initiator_user_id, target_project_id,
+                    cadf_action, target_type_uri
+                )
             )
-
-        # include initiator user id
-        if self.is_include_initiator_user_id_in_metric:
-            detail_labels.append(
-                "initiator_user_id:{0}".format(initiator_user_id)
-            )
-
-        # if swift request: determine target.container_id based on request path
-        if common.is_swift_request(req.path) or self.service_type == 'object-store':
-            _, target_container_id = self.get_target_account_container_id_from_request(req)
-            environ['WATCHER.TARGET_CONTAINER_ID'] = target_container_id
-
-        self.logger.debug(
-            'got request with initiator_project_id: {0}, initiator_domain_id: {1}, initiator_user_id: {2}, '
-            'target_project_id: {3}, action: {4}, target_type_uri: {5}'.format(
-                initiator_project_id, initiator_domain_id, initiator_user_id, target_project_id,
-                cadf_action, target_type_uri
-            )
-        )
+        except UnicodeDecodeError:
+            # https://github.com/Pylons/webob/issues/161
+            # accessing req.path on not correct encoded request path causing this
+            self.logger.debug("failed to determine CADF attributes: UnicodeDecodeError")
 
         # capture the response status
         response_wrapper = {}
