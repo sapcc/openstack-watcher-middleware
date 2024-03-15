@@ -46,6 +46,10 @@ class OpenStackWatcherMiddleware(object):
         self.wsgi_config = config
         self.watcher_config = {}
 
+        loglevel = self.wsgi_config.get('loglevel', None)
+        if loglevel:
+            logger.setLevel(level=logging.__getattribute__(loglevel))
+
         self.cadf_service_name = self.wsgi_config.get('cadf_service_name', None)
         self.service_type = self.wsgi_config.get('service_type', taxonomy.UNKNOWN)
         # get the project uid from the request path or from the token (default)
