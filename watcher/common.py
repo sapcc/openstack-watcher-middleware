@@ -20,8 +20,8 @@ from pycadf import cadftaxonomy as taxonomy
 
 
 UID_REGEX = '[a-fA-F0-9-?]{32,36}'
-VERSION_REGEX = '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$'
-TIMESTAMP_REGEX = '^\d{4}-\d{2}-\d{2}$'
+VERSION_REGEX = r'^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$'
+TIMESTAMP_REGEX = r'^\d{4}-\d{2}-\d{2}$'
 
 METHOD_ACTION_MAP = {
     'GET': taxonomy.ACTION_READ,
@@ -145,7 +145,7 @@ def get_project_id_from_os_path(path):
     """
     get the project uid from a path if there's one
     path must be something like ../<version>/<project_id>/..
-    version must follow regex: '^v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$'
+    version must follow regex: '^v(?:\\d+\\.)?(?:\\d+\\.)?(\\*|\\d+)$'
     (v1,v1.0,..)
 
     :param path: path containing a project uid
@@ -231,7 +231,7 @@ def endswith_version(string):
     :param string: the string to check
     :return: bool whether the string ends with a version
     """
-    version_ending_pattern = re.compile('\S*v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$')
+    version_ending_pattern = re.compile(r'\S*v(?:\d+\.)?(?:\d+\.)?(\*|\d+)$')
     if version_ending_pattern.match(string.rstrip('/')):
         return True
     return False
